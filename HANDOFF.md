@@ -1,8 +1,25 @@
 # CaisDeosMasPoker — Handoff Notes (D:/CLAUDE/POKER/POKER)
 
-> **Tóm tắt:** App tính tỉ lệ thắng poker Texas Hold'em, tiếng Việt, giao diện Neon Cosmic 2026, picker rank→suit, equity donut SVG, range 13×13 (toggle với position presets). Đã hoàn thành UI redesign, audit độ chính xác + 4 tối ưu hiệu năng + 17 task polish/feature + 6 task UX/layout. Đang ổn định.
+> **Tóm tắt:** App tính tỉ lệ thắng poker Texas Hold'em, tiếng Việt, giao diện Neon Cosmic 2026, picker rank→suit, equity donut SVG, range 13×13 (toggle với position presets). Đã hoàn thành UI redesign, audit độ chính xác + 4 tối ưu hiệu năng + 17 task polish/feature + 6 task UX/layout. **Đã deploy lên Vercel với auto-deploy từ GitHub**.
 
 > **Brand:** "CaisDeosMasPoker" (đổi từ "Poker Equity" ngày 2026-06-11). Cập nhật: title tab, topbar, share text.
+
+---
+
+## 0. Live URLs (2026-06-11)
+
+- **Production**: https://caisdeosmas-poker.vercel.app
+- **GitHub**: https://github.com/samhanselphoto-commits/caisdeosmas-poker
+- **Vercel project**: `caisdeosmas-poker` (team `az-ing-s-projects`, projectId `prj_LA9GKUDK3ogECgQtercIgH0kZfLi`)
+- **Auto-deploy**: mỗi `git push` lên `main` → Vercel build + deploy trong ~5-10s
+
+### Quy trình update từ giờ
+1. Tôi sửa code ở local
+2. `git add . && git commit -m "msg"`
+3. `git push` (cần GitHub PAT — session sau bạn paste lại, hoặc cài `gh auth login` trên máy)
+4. Vercel tự detect push → build → deploy production
+
+> **Lưu ý bảo mật**: PAT + Vercel token KHÔNG được lưu vào repo hay settings.local.json. Mỗi session bạn paste lại token nếu cần deploy. Hoặc tôi có thể hướng dẫn bạn cài `gh auth login` để token tự cache vĩnh viễn trong Git Credential Manager.
 
 ---
 
