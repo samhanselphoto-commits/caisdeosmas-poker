@@ -1472,6 +1472,137 @@ input {
   font-size: var(--t-sm);
   line-height: 1.5;
 }
+
+/* === RIVER ANALYSIS MODAL === */
+.river-modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(10, 1, 24, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.25s var(--ease-out-quint);
+  padding: 20px;
+}
+.river-modal-backdrop.show { opacity: 1; }
+.river-modal {
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-2xl);
+  max-width: 480px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  position: relative;
+  transform: scale(0.92) translateY(20px);
+  transition: transform 0.32s var(--ease-spring);
+  box-shadow: var(--shadow-xl);
+}
+.river-modal-backdrop.show .river-modal { transform: scale(1) translateY(0); }
+.river-modal-close {
+  position: absolute; top: 12px; right: 12px;
+  width: 32px; height: 32px;
+  border: none; background: var(--bg-track);
+  border-radius: 50%;
+  color: var(--text-secondary);
+  font-size: 20px; line-height: 1;
+  cursor: pointer; z-index: 2;
+  transition: background 0.2s;
+}
+.river-modal-close:hover { background: var(--bg-input); }
+.river-modal-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 20px 24px 12px;
+  border-bottom: 1px solid var(--hairline);
+}
+.river-modal-icon { font-size: 24px; }
+.river-modal-header h3 {
+  margin: 0; font-size: 18px; font-weight: 700;
+  color: var(--text-primary);
+}
+.river-modal-body { padding: 16px 24px; }
+.rm-section { margin-bottom: 16px; }
+.rm-section:last-child { margin-bottom: 0; }
+.rm-label {
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+.rm-hand-name {
+  font-size: 16px; font-weight: 700;
+  color: var(--accent);
+  padding: 10px 12px;
+  background: var(--accent-soft);
+  border-radius: var(--r-md);
+}
+.rm-list { display: flex; flex-direction: column; gap: 6px; }
+.rm-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px;
+  background: var(--bg-glass);
+  border-radius: var(--r-sm);
+  font-size: 14px;
+}
+.rm-beaten .rm-row { border-left: 3px solid var(--danger); }
+.rm-tie .rm-row { border-left: 3px solid var(--warning); }
+.rm-hand { color: var(--text-primary); font-weight: 500; }
+.rm-combo { color: var(--text-tertiary); font-size: 12px; font-variant-numeric: tabular-nums; }
+.rm-empty {
+  padding: 12px; text-align: center;
+  color: var(--text-tertiary); font-size: 13px;
+  background: var(--bg-glass);
+  border-radius: var(--r-sm);
+}
+.rm-call-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+  margin-bottom: 12px;
+}
+.rm-call-stat {
+  text-align: center;
+  padding: 10px 6px;
+  background: var(--bg-glass);
+  border-radius: var(--r-sm);
+}
+.rm-call-val { font-size: 18px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.rm-call-val.rm-good { color: var(--success); }
+.rm-call-val.rm-bad { color: var(--danger); }
+.rm-call-lbl { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+.rm-verdict-good {
+  text-align: center;
+  padding: 10px;
+  border-radius: var(--r-md);
+  font-weight: 600;
+  font-size: 14px;
+  background: var(--success-soft);
+  color: var(--success);
+}
+.rm-verdict-bad {
+  text-align: center;
+  padding: 10px;
+  border-radius: var(--r-md);
+  font-weight: 600;
+  font-size: 14px;
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.river-modal-actions {
+  padding: 12px 24px 20px;
+  display: flex; justify-content: center;
+}
+.river-modal-confirm {
+  background: var(--hero-gradient);
+  color: var(--text-on-accent);
+  border: none;
+  padding: 12px 32px;
+  border-radius: var(--r-full);
+  font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-glow-cyan);
+  transition: transform 0.2s var(--ease-spring);
+}
+.river-modal-confirm:active { transform: scale(0.96); }
 .empty-icon {
   width: 32px; height: 32px;
   margin: 0 auto var(--s-2);
@@ -2620,6 +2751,10 @@ function selectPickerCard(card) {
   render();
   saveState();
   scheduleCalc();
+  // River analysis modal: khi vừa chọn lá thứ 5 của board chính
+  if (type === 'board' && STATE.board.filter(c => c).length === 5) {
+    setTimeout(showRiverAnalysisModal, 300);
+  }
 }
 
 // === EQUITY RENDERING ===
@@ -3922,6 +4057,156 @@ function showToast(msg) {
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// === RIVER ANALYSIS MODAL ===
+function showRiverAnalysisModal() {
+  const hero = STATE.hero.filter(c => c);
+  const board = STATE.board.filter(c => c);
+  if (hero.length < 2 || board.length < 5) return;
+
+  // 1. Lấy range đối thủ theo mode hiện tại
+  let oppRange;
+  if (STATE.mode === 'co_ban') {
+    const pmCfg = RANGE_AUTO_BY_PLAYER_MODE[STATE.playerMode] || RANGE_AUTO_BY_PLAYER_MODE['nhom_nho'];
+    oppRange = applyRangeFilterByThreshold(pmCfg.threshold);
+  } else {
+    oppRange = STATE.activeRange;
+  }
+
+  // 2. Hero best hand
+  const heroEval = evaluateBest([...hero, ...board]);
+  const heroName = handNameVN(heroEval);
+
+  // 3. Enumerate 1326 tổ hợp 2-card, phân loại
+  const beatMap = new Map();
+  const tieMap = new Map();
+  let total = 0, winN = 0, loseN = 0, tieN = 0;
+  const heroSet = new Set(hero.map(c => `${c.rank},${c.suit}`));
+  const boardSet = new Set(board.map(c => `${c.rank},${c.suit}`));
+  const used = new Set([...heroSet, ...boardSet]);
+
+  for (let r1 = 2; r1 <= 14; r1++) {
+    for (let s1 = 0; s1 < 4; s1++) {
+      for (let r2 = r1; r2 <= 14; r2++) {
+        for (let s2 = (r1 === r2 ? s1 : 0); s2 < 4; s2++) {
+          const k1 = `${r1},${s1}`, k2 = `${r2},${s2}`;
+          if (used.has(k1) || used.has(k2)) continue;
+          // Check range
+          const row = Math.max(r1, r2) - 2, col = Math.min(r1, r2) - 2;
+          if (!oppRange[`${row},${col}`]) continue;
+          const c1 = { rank: r1, suit: s1 }, c2 = { rank: r2, suit: s2 };
+          const oppEval = evaluateBest([c1, c2, ...board]);
+          const cmp = compareEval(heroEval, oppEval);
+          total++;
+          if (cmp > 0) winN++;
+          else if (cmp === 0) {
+            tieN++;
+            const label = handNameVN(oppEval);
+            tieMap.set(label, (tieMap.get(label) || 0) + 1);
+          } else {
+            loseN++;
+            const label = handNameVN(oppEval);
+            beatMap.set(label, (beatMap.get(label) || 0) + 1);
+          }
+        }
+      }
+    }
+  }
+
+  const beatTop = [...beatMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const tieTop = [...tieMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+
+  // 4. Call analysis
+  const equity = total > 0 ? (winN + tieN / 2) / total : 0;
+  const pot = STATE.pot || 0;
+  const call = STATE.call || 0;
+  const totalPot = pot + call;
+  const required = totalPot > 0 ? call / totalPot : 0;
+  const evCall = equity * totalPot - (1 - equity) * call;
+  const profitable = call > 0 ? equity > required : (equity > 0.5);
+  const winPct = (equity * 100).toFixed(0);
+  const reqPct = call > 0 ? (required * 100).toFixed(0) : '—';
+  const evStr = (evCall >= 0 ? '+' : '') + '$' + evCall.toFixed(2);
+  const verdictClass = profitable ? 'rm-verdict-good' : 'rm-verdict-bad';
+  const verdictText = call > 0
+    ? (profitable ? '✅ Có thể theo' : '❌ Nên bỏ bài')
+    : (equity >= 0.5 ? '✅ Bài mạnh' : '⚠️ Bài yếu — cẩn thận');
+
+  const beatHtml = beatTop.length > 0
+    ? beatTop.map(([n, c]) => `<div class="rm-row"><span class="rm-hand">${n}</span><span class="rm-combo">${c} combo</span></div>`).join('')
+    : `<div class="rm-empty">Không có — bạn thắng tất cả!</div>`;
+  const tieHtml = tieTop.length > 0
+    ? tieTop.map(([n, c]) => `<div class="rm-row"><span class="rm-hand">${n}</span><span class="rm-combo">${c} combo</span></div>`).join('')
+    : '';
+
+  const callLabel = call > 0 ? `Nếu bạn CALL $${call}` : 'Nếu bạn CHECK';
+
+  // 5. Render modal
+  const modal = el('div', { class: 'river-modal-backdrop' });
+  modal.innerHTML = `
+    <div class="river-modal">
+      <button class="river-modal-close" aria-label="Đóng" data-close>×</button>
+      <div class="river-modal-header">
+        <div class="river-modal-icon">🎯</div>
+        <h3>Trường hợp có thể xảy ra</h3>
+      </div>
+      <div class="river-modal-body">
+        <div class="rm-section">
+          <div class="rm-label">Bài của bạn</div>
+          <div class="rm-hand-name">${heroName}</div>
+        </div>
+        <div class="rm-section rm-beaten">
+          <div class="rm-label">Bạn có thể THUA</div>
+          <div class="rm-list">${beatHtml}</div>
+        </div>
+        ${tieHtml ? `
+        <div class="rm-section rm-tie">
+          <div class="rm-label">Bạn có thể HÒA</div>
+          <div class="rm-list">${tieHtml}</div>
+        </div>` : ''}
+        <div class="rm-section rm-call">
+          <div class="rm-label">${callLabel}</div>
+          <div class="rm-call-grid">
+            <div class="rm-call-stat">
+              <div class="rm-call-val">${winPct}%</div>
+              <div class="rm-call-lbl">Tỉ lệ thắng</div>
+            </div>
+            <div class="rm-call-stat">
+              <div class="rm-call-val">${reqPct}${reqPct !== '—' ? '%' : ''}</div>
+              <div class="rm-call-lbl">Cần hòa vốn</div>
+            </div>
+            <div class="rm-call-stat">
+              <div class="rm-call-val ${profitable ? 'rm-good' : 'rm-bad'}">${call > 0 ? evStr : '—'}</div>
+              <div class="rm-call-lbl">${call > 0 ? (profitable ? 'Lời nếu theo' : 'Lỗ nếu theo') : 'Check free'}</div>
+            </div>
+          </div>
+          <div class="${verdictClass}">${verdictText}</div>
+        </div>
+      </div>
+      <div class="river-modal-actions">
+        <button class="river-modal-confirm" data-close>Đã hiểu</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  setTimeout(() => modal.classList.add('show'), 10);
+
+  // Close handlers
+  const onKey = (e) => { if (e.key === 'Escape') closeRiverModal(); };
+  document.addEventListener('keydown', onKey);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal || e.target.hasAttribute('data-close')) {
+      closeRiverModal();
+      document.removeEventListener('keydown', onKey);
+    }
+  });
+
+  haptic(20);
+}
+
+function closeRiverModal() {
+  document.querySelectorAll('.river-modal-backdrop').forEach(p => p.remove());
 }
 
 if (document.readyState === 'loading') {
