@@ -1,0 +1,23 @@
+# Claude Code config (user-specific, local dev only)
+.claude/
+
+# Build artifacts
+.build/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node (nếu sau này thêm tooling)
+node_modules/
+.npm/
+.yarn/
+
+# Env
+.env
+.env.local
+.env.*.local

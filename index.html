@@ -1,0 +1,3626 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0118">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Poker Equity — Máy Tính Texas Hold'em</title>
+<style>
+/* === DESIGN TOKENS — Apple/Samsung 2026 === */
+:root {
+  /* Spacing scale (8pt grid) */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
+  --s-5: 20px; --s-6: 24px; --s-7: 32px; --s-8: 40px;
+  --s-9: 48px; --s-10: 64px;
+
+  /* Radius */
+  --r-xs: 8px;  --r-sm: 12px; --r-md: 16px;
+  --r-lg: 20px; --r-xl: 24px; --r-2xl: 32px;
+  --r-full: 999px;
+
+  /* Type scale (display-first) */
+  --t-xs: 11px; --t-sm: 13px; --t-base: 15px;
+  --t-md: 17px; --t-lg: 20px; --t-xl: 24px;
+  --t-2xl: 32px; --t-3xl: 44px; --t-display: 72px;
+
+  /* Spring easing */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* NEON COSMIC (default — light/forced bright tone) */
+  --bg-base: #0a0118;
+  --bg-elevated: #14092b;
+  --bg-glass: rgba(40, 20, 70, 0.55);
+  --bg-glass-strong: rgba(40, 20, 70, 0.78);
+  --bg-floating: rgba(30, 15, 55, 0.88);
+  --bg-track: rgba(255, 255, 255, 0.08);
+  --bg-input: rgba(255, 255, 255, 0.07);
+  --bg-input-focus: rgba(255, 255, 255, 0.14);
+
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.72);
+  --text-tertiary: rgba(255, 255, 255, 0.5);
+  --text-quaternary: rgba(255, 255, 255, 0.32);
+  --text-inverse: #0a0118;
+  --text-on-accent: #ffffff;
+
+  --hairline: rgba(255, 255, 255, 0.12);
+  --hairline-strong: rgba(255, 255, 255, 0.22);
+  --separator: rgba(255, 255, 255, 0.08);
+
+  --accent: #00f0ff;          /* electric cyan */
+  --accent-2: #b14eff;        /* vivid violet */
+  --accent-soft: rgba(0, 240, 255, 0.16);
+
+  --success: #00ff9d;         /* neon green */
+  --success-soft: rgba(0, 255, 157, 0.16);
+  --warning: #ffb800;         /* gold */
+  --warning-soft: rgba(255, 184, 0, 0.18);
+  --danger: #ff2d6f;          /* hot pink */
+  --danger-soft: rgba(255, 45, 111, 0.18);
+
+  --suit-red: #ff3855;
+  --suit-black: #1a0d2e;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.45), 0 4px 12px rgba(0,0,0,0.25);
+  --shadow-xl: 0 24px 64px rgba(0,0,0,0.55), 0 8px 20px rgba(0,0,0,0.3);
+  --shadow-glow-cyan: 0 0 32px rgba(0, 240, 255, 0.45);
+  --shadow-glow-magenta: 0 0 32px rgba(177, 78, 255, 0.45);
+  --shadow-glow: var(--shadow-glow-cyan);
+
+  --hero-gradient: linear-gradient(135deg, #00f0ff 0%, #b14eff 50%, #ff2d6f 100%);
+  --hero-gradient-warm: linear-gradient(135deg, #ffb800 0%, #ff2d6f 50%, #b14eff 100%);
+  --hero-gradient-cool: linear-gradient(135deg, #00ff9d 0%, #00f0ff 50%, #b14eff 100%);
+  --hero-gradient-rainbow: linear-gradient(135deg, #00f0ff 0%, #00ff9d 25%, #ffb800 50%, #ff2d6f 75%, #b14eff 100%);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+               "Segoe UI Variable", "SamsungOne", "Inter", system-ui, sans-serif;
+  --font-mono: "SF Mono", ui-monospace, "JetBrains Mono", "Cascadia Code", monospace;
+  --font-num: "SF Pro Display", -apple-system, "SamsungOne", system-ui, sans-serif;
+}
+
+/* In light mode, also use neon cosmic — bright is the design goal */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-base: #0a0118;
+    --bg-elevated: #14092b;
+    --bg-glass: rgba(40, 20, 70, 0.55);
+    --bg-glass-strong: rgba(40, 20, 70, 0.78);
+    --bg-floating: rgba(30, 15, 55, 0.88);
+    --bg-track: rgba(255, 255, 255, 0.08);
+    --bg-input: rgba(255, 255, 255, 0.07);
+    --bg-input-focus: rgba(255, 255, 255, 0.14);
+
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.72);
+    --text-tertiary: rgba(255, 255, 255, 0.5);
+    --text-quaternary: rgba(255, 255, 255, 0.32);
+  }
+}
+
+/* === BASE === */
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+*::-webkit-scrollbar { width: 0; height: 0; }
+
+html, body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--t-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01", "cv11";
+  min-height: 100vh;
+  min-height: 100dvh;
+  overscroll-behavior: none;
+}
+
+body {
+  background:
+    radial-gradient(900px 500px at 100% 0%, rgba(177, 78, 255, 0.45), transparent 55%),
+    radial-gradient(700px 500px at 0% 20%, rgba(0, 240, 255, 0.32), transparent 55%),
+    radial-gradient(800px 600px at 50% 100%, rgba(255, 45, 111, 0.35), transparent 55%),
+    radial-gradient(500px 400px at 80% 70%, rgba(0, 255, 157, 0.22), transparent 55%),
+    var(--bg-base);
+  background-attachment: fixed;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input {
+  font-family: inherit;
+  border: none;
+  outline: none;
+  background: none;
+  color: inherit;
+  font-size: inherit;
+}
+
+#app {
+  max-width: 520px;
+  margin: 0 auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-bottom: 120px;
+  position: relative;
+}
+
+/* === TOP BAR === */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top, 0) + 14px) 20px 14px;
+  background: var(--bg-glass);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.topbar-title {
+  font-size: var(--t-md);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  text-shadow: 0 0 24px rgba(0, 240, 255, 0.3);
+}
+.topbar-title .brand-mark {
+  display: inline-block;
+  width: 18px; height: 18px;
+  border-radius: 5px;
+  background: var(--hero-gradient-rainbow);
+  margin-right: 8px;
+  vertical-align: -3px;
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.6), 0 0 12px rgba(177, 78, 255, 0.5);
+}
+.topbar-actions { display: flex; gap: 6px; align-items: center; }
+.topbar-action {
+  width: 36px; height: 36px;
+  border-radius: var(--r-full);
+  background: var(--bg-track);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: transform 0.2s var(--ease-spring), background 0.2s;
+  border: none;
+  cursor: pointer;
+}
+.topbar-action:active { transform: scale(0.92); background: var(--bg-input); }
+.topbar-action:disabled { opacity: 0.35; pointer-events: none; }
+
+/* === HERO HEADER === */
+.hero {
+  padding: var(--s-6) 20px var(--s-4);
+}
+.hero h1 {
+  font-family: var(--font-num);
+  font-size: var(--t-3xl);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  background: linear-gradient(135deg, #ffffff 0%, #00f0ff 50%, #b14eff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.hero h1 .thin {
+  font-weight: 300;
+  background: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.8) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.hero .subtitle {
+  margin-top: 6px;
+  font-size: var(--t-sm);
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+}
+
+/* === SECTION === */
+.section {
+  padding: var(--s-5) 20px 0;
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--s-3);
+  padding: 0 2px;
+}
+.section-title {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+}
+.section-hint {
+  font-size: var(--t-xs);
+  color: var(--text-quaternary);
+  font-weight: 500;
+}
+
+/* === GLASS CARD === */
+.glass {
+  background: var(--bg-glass);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-md), 0 0 24px rgba(177, 78, 255, 0.1);
+}
+
+/* === HERO EQUITY CARD === */
+.equity-hero {
+  position: relative;
+  padding: var(--s-7) var(--s-6) var(--s-6);
+  background: var(--bg-glass-strong);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--r-2xl);
+  box-shadow: var(--shadow-lg), 0 0 40px rgba(177, 78, 255, 0.18);
+  overflow: hidden;
+}
+.equity-hero::before {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  background: var(--hero-gradient-rainbow);
+  filter: blur(90px);
+  opacity: 0.32;
+  z-index: 0;
+  transition: opacity 0.6s var(--ease-out-quint), background 0.6s;
+}
+.equity-hero[data-sentiment="great"]::before { background: var(--hero-gradient-cool); opacity: 0.5; }
+.equity-hero[data-sentiment="good"]::before { background: var(--hero-gradient-cool); opacity: 0.42; }
+.equity-hero[data-sentiment="decent"]::before { background: linear-gradient(135deg, #00f0ff 0%, #00ff9d 100%); opacity: 0.32; }
+.equity-hero[data-sentiment="bad"]::before { background: var(--hero-gradient-warm); opacity: 0.42; }
+.equity-hero[data-sentiment="neutral"]::before { opacity: 0.32; }
+.equity-hero > * { position: relative; z-index: 1; }
+
+.equity-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+}
+.equity-donut {
+  width: 132px; height: 132px;
+  flex-shrink: 0;
+  position: relative;
+}
+.equity-donut svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.equity-donut-track { fill: none; stroke: rgba(255, 255, 255, 0.1); stroke-width: 10; }
+.equity-donut-fill {
+  fill: none;
+  stroke: url(#equityGrad);
+  stroke-width: 11;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s var(--ease-out-expo);
+  filter: drop-shadow(0 0 6px rgba(0, 240, 255, 0.5));
+}
+.equity-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.equity-pct {
+  font-family: var(--font-num);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 24px rgba(0, 240, 255, 0.4);
+}
+.equity-pct-suffix {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  margin-left: 1px;
+}
+.equity-pct-label {
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+}
+.equity-vs {
+  flex: 1;
+  min-width: 0;
+}
+.equity-vs-label {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  margin-bottom: 6px;
+}
+.equity-vs-value {
+  font-family: var(--font-num);
+  font-size: var(--t-xl);
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+.equity-vs-sub {
+  margin-top: 2px;
+  font-size: var(--t-sm);
+  color: var(--text-secondary);
+}
+.equity-pills {
+  display: flex;
+  gap: 6px;
+  margin-top: var(--s-4);
+  padding-top: var(--s-4);
+  border-top: 0.5px solid var(--separator);
+}
+.equity-pill {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  background: var(--bg-track);
+  transition: background 0.2s;
+}
+.equity-pill .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--text-quaternary);
+  margin-bottom: 2px;
+}
+.equity-pill.win .dot { background: var(--success); }
+.equity-pill.tie .dot { background: var(--warning); }
+.equity-pill.lose .dot { background: var(--danger); }
+.equity-pill .v {
+  font-family: var(--font-num);
+  font-size: var(--t-md);
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.equity-pill .l {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+}
+
+/* === EQUITY BY STREET CHART (A.2) === */
+.equity-street-chart {
+  margin-top: var(--s-3);
+  padding: var(--s-3);
+  background: rgba(10, 13, 26, 0.4);
+  border: 0.5px solid var(--hairline);
+  border-radius: var(--r-md);
+}
+.equity-street-chart[hidden] { display: none; }
+.esc-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+  margin-bottom: var(--s-2);
+}
+.esc-svg { width: 100%; height: 80px; display: block; }
+.esc-point { fill: var(--accent); stroke: var(--bg-base); stroke-width: 2; }
+.esc-point-current { fill: var(--success); }
+.esc-line { stroke: var(--accent); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: 0.8; }
+.esc-axis { stroke: var(--hairline); stroke-width: 0.5; opacity: 0.4; }
+.esc-label { font-size: 9px; font-family: var(--font-num); fill: var(--text-tertiary); }
+.esc-value { font-size: 10px; font-family: var(--font-num); fill: var(--accent); font-weight: 600; }
+
+/* === SHOWDOWN BREAKDOWN (A.3) === */
+.equity-showdown-breakdown {
+  margin-top: var(--s-2);
+  padding: var(--s-3);
+  background: rgba(10, 13, 26, 0.4);
+  border: 0.5px solid var(--hairline);
+  border-radius: var(--r-md);
+}
+.equity-showdown-breakdown[hidden] { display: none; }
+.esb-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+  margin-bottom: var(--s-2);
+}
+.esb-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 4px 0;
+  font-size: 12px;
+}
+.esb-label {
+  flex: 0 0 110px;
+  color: var(--text-secondary);
+}
+.esb-bar-wrap {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.esb-bar {
+  height: 100%;
+  background: var(--hero-gradient);
+  border-radius: 3px;
+  transition: width 0.3s var(--ease-out-quint);
+}
+.esb-pct {
+  flex: 0 0 36px;
+  text-align: right;
+  font-family: var(--font-num);
+  font-size: 11px;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* === EV BREAKDOWN (E.2) === */
+.ev-breakdown {
+  margin-top: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 0.5px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ev-breakdown[hidden] { display: none; }
+.ev-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+}
+.ev-label { color: var(--text-tertiary); font-weight: 500; }
+.ev-val { color: var(--text-primary); font-weight: 600; }
+.ev-val.positive { color: var(--success); }
+.ev-val.negative { color: var(--danger); }
+
+/* === MULTI-BOARD (A.4) === */
+.extra-boards {
+  margin-top: var(--s-3);
+  padding: var(--s-3);
+  background: rgba(10, 13, 26, 0.3);
+  border: 0.5px dashed var(--hairline);
+  border-radius: var(--r-md);
+}
+.extra-boards[hidden] { display: none; }
+.extra-boards-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--s-2);
+}
+.eb-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+}
+.eb-add {
+  background: rgba(0, 240, 255, 0.12);
+  border: 0.5px solid var(--accent);
+  color: var(--accent);
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.eb-add:active { transform: scale(0.95); }
+.eb-board {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--s-2) 0;
+  border-top: 0.5px solid var(--hairline);
+}
+.eb-board-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+.eb-remove {
+  background: transparent;
+  border: none;
+  color: var(--danger);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.eb-remove:active { transform: scale(0.95); }
+.eb-row { display: flex; gap: 4px; justify-content: center; }
+
+/* === TOAST (B.4) === */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(20, 22, 38, 0.95);
+  color: var(--text-primary);
+  padding: 10px 18px;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  font-weight: 500;
+  border: 0.5px solid var(--accent);
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s var(--ease-spring);
+  z-index: 300;
+  max-width: 90%;
+  text-align: center;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* === TABLE SETUP (B.4) === */
+.table-setup {
+  padding: var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.ts-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+.ts-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  flex: 0 0 auto;
+  min-width: 110px;
+}
+.position-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+}
+.pos-chip {
+  font-size: 11px !important;
+  padding: 5px 8px !important;
+  min-width: 44px;
+}
+.ts-blinds {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-2);
+  align-items: end;
+}
+.ts-blind {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ts-blind label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.ts-blind input {
+  background: var(--bg-input);
+  border: 0.5px solid var(--hairline);
+  color: var(--text-primary);
+  border-radius: var(--r-sm);
+  padding: 6px 8px;
+  font-family: var(--font-num);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* === RANGE VIEW TOGGLE (B.6) === */
+.range-view-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--bg-input);
+  border-radius: var(--r-md);
+  margin-bottom: var(--s-2);
+}
+.range-view-toggle .chip {
+  flex: 1;
+  font-size: 11px;
+  padding: 5px 8px;
+}
+.range-preset-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: var(--s-2) 0;
+}
+.range-preset-chip {
+  font-size: 12px !important;
+}
+.range-grid-view[hidden] { display: none; }
+.range-preset-view[hidden] { display: none; }
+.range-explainer {
+  margin-top: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  background: rgba(0, 240, 255, 0.06);
+  border: 0.5px solid rgba(0, 240, 255, 0.2);
+  border-radius: var(--r-sm);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.range-explainer strong { color: var(--accent); }
+
+/* === GLOSSARY (B.2) === */
+.glossary-btn {
+  background: rgba(0, 240, 255, 0.12);
+  border: 0.5px solid var(--accent);
+  color: var(--accent);
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  vertical-align: middle;
+}
+.glossary-btn:active { transform: scale(0.9); }
+.glossary-pop {
+  position: fixed;
+  z-index: 400;
+  max-width: 320px;
+  background: rgba(20, 22, 38, 0.98);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-md);
+  padding: var(--s-3);
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.3);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.2s, transform 0.2s var(--ease-spring);
+}
+.glossary-pop.show { opacity: 1; transform: translateY(0); }
+.glossary-title {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.glossary-body { color: var(--text-secondary); }
+.glossary-body b { color: var(--text-primary); }
+.glossary-close {
+  position: absolute;
+  top: 4px; right: 4px;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 16px;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+}
+.glossary-close:active { background: var(--bg-input); }
+
+.pot-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: var(--s-2);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+.pot-legend b { color: var(--text-secondary); font-weight: 600; }
+.pot-legend .muted { color: var(--text-muted); font-style: italic; }
+.v.neutral { color: var(--text-tertiary); }
+
+/* === CARDS GRID === */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--s-3);
+}
+.cards-row {
+  display: flex;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+/* === PLAYING CARD (3D realistic) === */
+.card-slot {
+  aspect-ratio: 5 / 7;
+  max-width: 110px;
+  margin: 0 auto;
+  border-radius: var(--r-md);
+  background: var(--bg-track);
+  border: 1px dashed var(--hairline-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.25s var(--ease-spring), background 0.2s, border-color 0.2s;
+  overflow: hidden;
+  width: 100%;
+}
+.card-slot::before {
+  content: "+";
+  font-size: 28px;
+  font-weight: 300;
+  color: var(--text-quaternary);
+  transition: transform 0.3s var(--ease-spring);
+}
+.card-slot:active::before { transform: scale(1.3); }
+.card-slot:active { transform: scale(0.96); }
+.card-slot.filled {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(160deg, #ffffff 0%, #e8e0f0 100%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.6) inset,
+    0 2px 4px rgba(0,0,0,0.15),
+    0 6px 16px rgba(0, 0, 0, 0.3),
+    0 0 24px rgba(0, 240, 255, 0.18);
+}
+@media (prefers-color-scheme: dark) {
+  .card-slot.filled {
+    background: linear-gradient(160deg, #fafafc 0%, #ebebef 100%);
+  }
+}
+.card-slot.filled::before { display: none; }
+.card-slot.filled .clear-x { display: flex; }
+.card-slot:hover .clear-x { opacity: 1; }
+.clear-x {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s var(--ease-spring);
+  line-height: 1;
+}
+.clear-x:active { transform: scale(0.85); }
+
+.playing-card {
+  width: 100%; height: 100%;
+  border-radius: var(--r-md);
+  position: relative;
+  user-select: none;
+  background: linear-gradient(160deg, #ffffff 0%, #e8e0f0 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.7),
+    inset 0 -1px 0 rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  padding: 8px 7px;
+}
+.playing-card .corner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  font-family: var(--font-num);
+  font-weight: 600;
+  position: absolute;
+}
+.playing-card .corner.tl { top: 7px; left: 8px; }
+.playing-card .corner.br { bottom: 7px; right: 8px; transform: rotate(180deg); }
+.playing-card .corner .rank { font-size: 15px; letter-spacing: -0.02em; }
+.playing-card .corner .suit { font-size: 12px; line-height: 1; margin-top: 1px; }
+.playing-card .center-suit {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 32px;
+  line-height: 1;
+}
+.playing-card.red { color: #e5004d; }
+.playing-card.black { color: #1a0d2e; }
+
+.card-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  font-family: var(--font-num);
+  font-size: 14px;
+  line-height: 1;
+}
+.card-mini.red { color: #e5004d; }
+.card-mini.black { color: #1a0d2e; }
+.card-mini .suit { font-size: 16px; }
+
+/* Hero hand: 2 columns wide */
+.hero-hand { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); max-width: 240px; margin: 0 auto; }
+
+/* Board: 5 columns */
+.board-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--s-2); max-width: 100%; }
+.board-row .card-slot { min-height: 84px; }
+.card-slot.small { min-height: 60px; }
+.card-slot.small .plus { font-size: 18px; }
+@media (max-width: 380px) {
+  .board-row { gap: 6px; }
+  .board-row .card-slot { min-height: 72px; }
+  .playing-card .corner .rank { font-size: 13px; }
+  .playing-card .center-suit { font-size: 26px; }
+}
+
+/* === OPPONENT STEPPER === */
+.stepper {
+  display: flex;
+  align-items: center;
+  background: var(--bg-track);
+  border-radius: var(--r-full);
+  padding: 3px;
+  gap: 2px;
+  width: 100%;
+}
+.stepper-btn {
+  flex: 1;
+  height: 32px;
+  border-radius: var(--r-full);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  transition: all 0.2s var(--ease-spring);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+  padding: 0 2px;
+}
+.stepper-btn.active {
+  background: var(--hero-gradient);
+  color: var(--text-on-accent);
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.5), 0 2px 8px rgba(177, 78, 255, 0.3);
+  font-weight: 700;
+}
+.stepper-btn:active:not(.active) { background: var(--bg-input); }
+.stepper-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  background: var(--bg-elevated);
+  border: 0.5px solid var(--hairline);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+.stepper-label {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+/* === SEGMENTED CONTROL (Street tabs) === */
+.segmented {
+  display: flex;
+  background: var(--bg-track);
+  border-radius: var(--r-md);
+  padding: 3px;
+  gap: 2px;
+  position: relative;
+}
+.segmented-btn {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: var(--t-xs);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: color 0.2s, background 0.3s var(--ease-out-quint);
+  position: relative;
+  z-index: 1;
+}
+.segmented-btn.active {
+  color: var(--text-on-accent);
+  background: var(--hero-gradient);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+}
+.segmented-btn:disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* === RANGE GRID === */
+.range-card {
+  padding: var(--s-4);
+}
+.range-quick {
+  display: flex;
+  gap: 6px;
+  margin-bottom: var(--s-3);
+  flex-wrap: wrap;
+}
+.chip {
+  padding: 7px 12px;
+  border-radius: var(--r-full);
+  background: var(--bg-track);
+  color: var(--text-secondary);
+  font-size: var(--t-sm);
+  font-weight: 500;
+  transition: all 0.2s var(--ease-spring);
+}
+.chip:active { transform: scale(0.94); }
+.chip.active {
+  background: var(--hero-gradient);
+  color: var(--text-on-accent);
+  font-weight: 600;
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+}
+.range-grid {
+  display: grid;
+  grid-template-columns: repeat(13, 1fr);
+  gap: 2px;
+  background: var(--bg-base);
+  padding: 4px;
+  border-radius: var(--r-md);
+  border: 0.5px solid var(--hairline);
+}
+.range-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-num);
+  font-size: 9px;
+  font-weight: 600;
+  background: transparent;
+  border-radius: 4px;
+  color: var(--text-tertiary);
+  transition: all 0.2s var(--ease-spring);
+  line-height: 1;
+  text-align: center;
+  padding: 1px;
+  letter-spacing: -0.02em;
+}
+.range-cell:hover { background: var(--bg-input); }
+.range-cell.on {
+  background: var(--hero-gradient);
+  color: var(--text-on-accent);
+  box-shadow: 0 0 0 0.5px var(--accent), 0 0 12px rgba(0, 240, 255, 0.5), 0 2px 6px rgba(177, 78, 255, 0.4);
+}
+.range-cell.on:hover { filter: brightness(1.15); }
+.range-cell:active { transform: scale(0.9); }
+.range-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-3);
+  align-items: center;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  padding: var(--s-2) var(--s-1) 0;
+  margin-top: var(--s-1);
+}
+.range-legend b {
+  font-family: var(--font-num);
+  color: var(--accent);
+  font-weight: 600;
+}
+.range-legend-hint {
+  color: var(--text-muted);
+  font-style: italic;
+  margin-left: auto;
+}
+
+/* === POT ODDS === */
+.pot-card { padding: var(--s-4); }
+.pot-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-3);
+  margin-bottom: var(--s-4);
+}
+.pot-input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pot-input label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  padding-left: 4px;
+}
+.pot-input input {
+  background: var(--bg-input);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  color: var(--text-primary);
+  font-family: var(--font-num);
+  font-size: var(--t-lg);
+  font-weight: 600;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  transition: background 0.2s, box-shadow 0.2s;
+  -moz-appearance: textfield;
+}
+.pot-input input::-webkit-outer-spin-button,
+.pot-input input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.pot-input input:focus { background: var(--bg-input-focus); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+.pot-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--s-3) var(--s-4);
+  background: var(--bg-track);
+  border-radius: var(--r-md);
+  margin-bottom: var(--s-3);
+}
+.pot-result .l {
+  font-size: var(--t-sm);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.pot-result .v {
+  font-family: var(--font-num);
+  font-size: var(--t-lg);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.pot-result .v.good { color: var(--success); }
+.pot-result .v.bad { color: var(--danger); }
+
+.pot-bar-track {
+  height: 36px;
+  background: var(--bg-track);
+  border-radius: var(--r-md);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  padding: 4px;
+  gap: 4px;
+}
+.pot-bar-eq, .pot-bar-req {
+  height: 100%;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-on-accent);
+  font-variant-numeric: tabular-nums;
+  transition: width 0.5s var(--ease-out-expo);
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.pot-bar-eq {
+  background: var(--hero-gradient-cool);
+  width: 50%;
+}
+.pot-bar-req {
+  background: var(--hero-gradient-warm);
+  width: 20%;
+}
+
+/* === RECOMMENDATION — Big primary action === */
+.rec-card {
+  padding: var(--s-5);
+  text-align: center;
+  background: var(--bg-glass-strong);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
+}
+.rec-card::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  filter: blur(70px);
+  opacity: 0.45;
+  transition: background 0.5s, opacity 0.5s;
+}
+.rec-card[data-action="FOLD"]::before { background: var(--hero-gradient-warm); }
+.rec-card[data-action="CALL"]::before { background: var(--hero-gradient-cool); }
+.rec-card[data-action="RAISE"]::before { background: linear-gradient(135deg, #30d158, #0a84ff); }
+.rec-card > * { position: relative; }
+.rec-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-tertiary);
+  margin-bottom: 6px;
+}
+.rec-action {
+  font-family: var(--font-num);
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--text-primary);
+}
+.rec-action.fold { color: var(--danger); }
+.rec-action.call { color: var(--accent); }
+.rec-action.raise { color: var(--success); }
+.rec-reason {
+  margin-top: var(--s-3);
+  font-size: var(--t-sm);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* === OUTS + BEST HAND === */
+.analysis-card { padding: var(--s-4); }
+.outs-grid {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--s-3) var(--s-4);
+  align-items: center;
+}
+.outs-stat {
+  text-align: center;
+  min-width: 72px;
+}
+.outs-num {
+  font-family: var(--font-num);
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--success);
+  font-variant-numeric: tabular-nums;
+}
+.outs-num-label {
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+}
+.outs-rates {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.outs-rate-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 4px 0;
+}
+.outs-rate-row .l {
+  font-size: var(--t-sm);
+  color: var(--text-secondary);
+}
+.outs-rate-row .v {
+  font-family: var(--font-num);
+  font-size: var(--t-md);
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.outs-types {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 0.5px solid var(--separator);
+}
+.outs-type-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 8px 10px;
+  background: var(--bg-track);
+  border-radius: var(--r-sm);
+}
+.outs-type-label {
+  flex: 1;
+  font-size: var(--t-sm);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.outs-type-count {
+  font-family: var(--font-num);
+  font-size: var(--t-sm);
+  font-weight: 700;
+  color: var(--success);
+  background: var(--success-soft);
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  font-variant-numeric: tabular-nums;
+}
+.outs-type-cards {
+  display: flex;
+  gap: 2px;
+}
+.outs-mini {
+  width: 20px; height: 26px;
+  border-radius: 3px;
+  background: linear-gradient(160deg, #ffffff 0%, #f0f0f3 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+.outs-mini.red { color: var(--suit-red); }
+.outs-mini.black { color: var(--suit-black); }
+
+/* === BEST HAND === */
+.best-hand {
+  margin-top: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 0.5px solid var(--separator);
+}
+.best-hand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--s-3);
+}
+.best-hand-name {
+  font-family: var(--font-num);
+  font-size: var(--t-lg);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.best-hand-sub {
+  font-size: var(--t-xs);
+  color: var(--text-tertiary);
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+.best-hand-cards {
+  display: flex;
+  gap: 4px;
+}
+.best-card {
+  width: 32px; height: 44px;
+  border-radius: 4px;
+  background: linear-gradient(160deg, #ffffff 0%, #f0f0f3 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.05;
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-num);
+}
+.best-card.red { color: var(--suit-red); }
+.best-card.black { color: var(--suit-black); }
+.best-card.hero {
+  box-shadow: 0 0 0 2px var(--accent), 0 2px 6px var(--accent-soft);
+}
+
+/* === EMPTY STATE === */
+.empty {
+  padding: var(--s-5) var(--s-4);
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: var(--t-sm);
+  line-height: 1.5;
+}
+.empty-icon {
+  width: 32px; height: 32px;
+  margin: 0 auto var(--s-2);
+  border-radius: var(--r-sm);
+  background: var(--bg-track);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-quaternary);
+}
+
+/* === BOTTOM SHEET MODAL === */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 1, 24, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s var(--ease-out-quint);
+}
+.sheet-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.sheet {
+  background: var(--bg-elevated);
+  width: 100%;
+  max-width: 520px;
+  max-height: 80vh;
+  border-radius: var(--r-2xl) var(--r-2xl) 0 0;
+  padding: var(--s-2) var(--s-4) calc(env(safe-area-inset-bottom, 0) + var(--s-4));
+  box-shadow: 0 -8px 32px rgba(0,0,0,0.16);
+  transform: translateY(100%);
+  transition: transform 0.4s var(--ease-out-quint);
+  display: flex;
+  flex-direction: column;
+}
+.sheet-overlay.open .sheet { transform: translateY(0); }
+
+/* === ONBOARDING TOOLTIP === */
+.onboarding-tooltip {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 200;
+}
+.onboarding-tooltip[hidden] { display: none; }
+.onboarding-bubble {
+  position: absolute;
+  top: 280px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.18), rgba(177, 78, 255, 0.18));
+  border: 1px solid var(--accent);
+  border-radius: var(--r-lg);
+  padding: var(--s-3) var(--s-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  max-width: 280px;
+  pointer-events: auto;
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.4), 0 0 60px rgba(177, 78, 255, 0.3);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  animation: onboardingPulse 2s ease-in-out infinite;
+}
+.onboarding-arrow {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 14px;
+  height: 14px;
+  background: rgba(0, 240, 255, 0.18);
+  border-left: 1px solid var(--accent);
+  border-top: 1px solid var(--accent);
+}
+.onboarding-text {
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+.onboarding-btn {
+  background: var(--hero-gradient);
+  border: none;
+  color: var(--text-on-accent);
+  padding: 8px 18px;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-spring);
+}
+.onboarding-btn:active { transform: scale(0.95); }
+@keyframes onboardingPulse {
+  0%, 100% { box-shadow: 0 0 30px rgba(0, 240, 255, 0.4), 0 0 60px rgba(177, 78, 255, 0.3); }
+  50% { box-shadow: 0 0 50px rgba(0, 240, 255, 0.7), 0 0 100px rgba(177, 78, 255, 0.5); }
+}
+
+.sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--text-quaternary);
+  border-radius: 2px;
+  margin: 0 auto var(--s-3);
+  opacity: 0.4;
+}
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--s-3);
+  padding: 0 4px;
+}
+.sheet-title {
+  font-size: var(--t-md);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.sheet-close {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--bg-track);
+  color: var(--text-secondary);
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s var(--ease-spring);
+}
+.sheet-close:active { transform: scale(0.9); }
+
+/* === PICKER v2: rank chip + 4 suits === */
+.picker-step {
+  display: grid;
+  grid-template-columns: repeat(13, 1fr);
+  gap: 4px;
+  margin-bottom: var(--s-3);
+  padding: 3px;
+  background: var(--bg-track);
+  border-radius: var(--r-md);
+}
+.picker-rank {
+  min-width: 0;
+  height: 38px;
+  padding: 0 2px;
+  border-radius: 8px;
+  font-family: var(--font-num);
+  font-size: var(--t-sm);
+  font-weight: 700;
+  color: var(--text-tertiary);
+  background: transparent;
+  transition: all 0.2s var(--ease-spring);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.picker-rank.active {
+  background: var(--hero-gradient);
+  color: var(--text-on-accent);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+}
+.picker-rank:active:not(.active) { background: var(--bg-input); }
+
+.picker-suits {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 4px 0;
+}
+.picker-card {
+  aspect-ratio: 2/3;
+  border-radius: var(--r-md);
+  background: linear-gradient(160deg, #ffffff 0%, #e8e0f0 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-num);
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.7),
+    0 2px 4px rgba(0,0,0,0.2),
+    0 6px 14px rgba(0,0,0,0.35),
+    0 0 16px rgba(0, 240, 255, 0.2);
+  transition: transform 0.25s var(--ease-spring), box-shadow 0.2s, opacity 0.2s;
+  position: relative;
+}
+.picker-card .rank { font-size: 22px; letter-spacing: -0.03em; color: inherit; }
+.picker-card .suit { font-size: 32px; line-height: 1; margin-top: 4px; color: inherit; }
+.picker-card.red { color: #d70015; }
+.picker-card.black { color: #0a0a0a; -webkit-text-stroke: 0.5px #0a0a0a; }
+.picker-card.used {
+  pointer-events: none;
+  background: linear-gradient(160deg, #ffffff 0%, #e8e0f0 100%);
+  box-shadow: 0 0 0 2px var(--accent) inset, 0 0 12px var(--accent-soft);
+  position: relative;
+  cursor: default;
+}
+.picker-card.used::after {
+  content: "✓";
+  position: absolute;
+  top: 4px; right: 4px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 8px var(--accent-soft);
+}
+.picker-card:active:not(.used) {
+  transform: scale(0.93);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.9),
+    0 1px 2px rgba(0,0,0,0.08),
+    0 4px 10px rgba(0,0,0,0.12);
+}
+
+.picker-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* === ANIMATIONS === */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-soft); }
+  50% { box-shadow: 0 0 0 8px transparent; }
+}
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fade-in-up 0.4s var(--ease-out-quint) both; }
+
+/* === UTILITIES === */
+.mono { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.muted { color: var(--text-secondary); }
+.tnum { font-variant-numeric: tabular-nums; }
+.hidden { display: none !important; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+
+// === CARDS MODULE ===
+const SUITS = ['s', 'h', 'd', 'c'];
+const SUIT_SYMBOLS = { s: '♠', h: '♥', d: '♦', c: '♣' };
+const RANK_NAMES = ['', '', '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
+const SUIT_COLORS = { s: 'black', h: 'red', d: 'red', c: 'black' };
+const RANK_DISPLAY = ['','','2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+
+// Haptic feedback trên mobile. ms: thời lượng rung. An toàn trên desktop (no-op).
+function haptic(ms) {
+  try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {}
+}
+
+function cardId(c) { return c.rank * 4 + c.suit; }
+function cardStr(c) { return RANK_NAMES[c.rank] + SUITS[c.suit]; }
+function allCards() {
+  const cards = [];
+  for (let r = 2; r <= 14; r++) for (let s = 0; s < 4; s++) cards.push({ rank: r, suit: s });
+  return cards;
+}
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+// Opt #1: Build deck of available cards once (excludes known hero/board), reused across trials
+function buildAvailableDeck(knownCards) {
+  const known = new Set(knownCards.map(c => cardId(c)));
+  const avail = [];
+  for (let r = 2; r <= 14; r++) {
+    for (let s = 0; s < 4; s++) {
+      const id = r * 4 + s;
+      if (!known.has(id)) avail.push({ rank: r, suit: s });
+    }
+  }
+  return avail;
+}
+// Opt #1: In-place partial Fisher–Yates on the pre-built deck (no per-trial allocation)
+function partialShuffleInPlace(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+  }
+}
+
+// === HAND EVALUATOR ===
+// C.3 (Opt #4): allocation-free evaluate5. Single-pass, fixed array, no Object/Set. ~2-3× speedup.
+function evaluate5(cards) {
+  // Inline sort ranks desc (5 elements, fixed)
+  const r0 = cards[0].rank, r1 = cards[1].rank, r2 = cards[2].rank, r3 = cards[3].rank, r4 = cards[4].rank;
+  const ranks = [r0, r1, r2, r3, r4];
+  // Sort desc: insertion sort 5 items (faster than Array.sort for n=5)
+  for (let i = 1; i < 5; i++) {
+    const v = ranks[i]; let j = i - 1;
+    while (j >= 0 && ranks[j] < v) { ranks[j+1] = ranks[j]; j--; }
+    ranks[j+1] = v;
+  }
+  // Flush check
+  const s0 = cards[0].suit;
+  const isFlush = cards[1].suit === s0 && cards[2].suit === s0 && cards[3].suit === s0 && cards[4].suit === s0;
+  // Unique ranks check (sorted desc → straight check)
+  const u = ranks[0] !== ranks[1] && ranks[1] !== ranks[2] && ranks[2] !== ranks[3] && ranks[3] !== ranks[4];
+  let isStraight = false, straightHigh = 0;
+  if (u) {
+    if (ranks[0] - ranks[4] === 4) { isStraight = true; straightHigh = ranks[0]; }
+    else if (ranks[0] === 14 && ranks[1] === 5 && ranks[2] === 4 && ranks[3] === 3 && ranks[4] === 2) { isStraight = true; straightHigh = 5; }
+  }
+  // Count ranks: dùng mảng 13-phần-tử (index 0..12, value 0..12 ứng rank 2..14)
+  const c = [0,0,0,0,0,0,0,0,0,0,0,0,0];
+  c[r0-2]++; c[r1-2]++; c[r2-2]++; c[r3-2]++; c[r4-2]++;
+  // Find count of (4,3,2,2,1) — quét count từ cao xuống
+  // Best 4-of-a-kind
+  let fourRank = 0, threeRank = 0, pairHi = 0, pairLo = 0, singleHi = 0, singleLo = 0;
+  let nFour = 0, nThree = 0, nPair = 0;
+  // Quét rank 14→2
+  for (let rank = 12; rank >= 0; rank--) {
+    const cnt = c[rank];
+    if (cnt === 4) { fourRank = rank + 2; nFour = 1; }
+    else if (cnt === 3) { threeRank = rank + 2; nThree = 1; }
+    else if (cnt === 2) {
+      nPair++;
+      if (nPair === 1) pairHi = rank + 2;
+      else pairLo = rank + 2;
+    }
+    else if (cnt === 1) {
+      if (!singleHi) singleHi = rank + 2;
+      else singleLo = rank + 2;
+    }
+  }
+  // Phân loại hand
+  if (isFlush && isStraight) return { rank: 8, tiebreakers: [straightHigh], best5: cards };
+  if (nFour === 1) {
+    // kicker = single rank != fourRank
+    const kicker = (singleHi && singleHi !== fourRank) ? singleHi : singleLo;
+    return { rank: 7, tiebreakers: [fourRank, kicker || 0], best5: cards };
+  }
+  if (nThree === 1 && nPair >= 1) {
+    // full house: 3 + 2. Pair cao nhất
+    return { rank: 6, tiebreakers: [threeRank, pairHi], best5: cards };
+  }
+  if (isFlush) return { rank: 5, tiebreakers: ranks, best5: cards };
+  if (isStraight) return { rank: 4, tiebreakers: [straightHigh], best5: cards };
+  if (nThree === 1) {
+    // trips + 2 kickers (cao nhất trừ trips rank)
+    const kickers = [];
+    if (singleHi && singleHi !== threeRank) kickers.push(singleHi);
+    if (singleLo && singleLo !== threeRank) kickers.push(singleLo);
+    // Trường hợp đặc biệt: 7 cards không xảy ra ở đây (5 cards max 1 trips + kickers)
+    return { rank: 3, tiebreakers: [threeRank, kickers[0] || 0, kickers[1] || 0], best5: cards };
+  }
+  if (nPair === 2) {
+    // 2 pair: pairHi + pairLo + kicker (cao nhất không thuộc 2 pair)
+    const kicker = (singleHi && singleHi !== pairHi && singleHi !== pairLo) ? singleHi
+                  : (singleLo && singleLo !== pairHi && singleLo !== pairLo) ? singleLo : 0;
+    return { rank: 2, tiebreakers: [pairHi, pairLo, kicker], best5: cards };
+  }
+  if (nPair === 1) {
+    return { rank: 1, tiebreakers: [pairHi, singleHi, singleLo], best5: cards };
+  }
+  return { rank: 0, tiebreakers: ranks, best5: cards };
+}
+
+// C.2 (Opt #2): inline combinations cho 5/6/7 cards, không cần recursive. ~1.5-2× speedup.
+function evaluateBest(cards) {
+  if (cards.length === 5) return evaluate5(cards);
+  if (cards.length === 6) {
+    // C(6,5) = 6 combinations
+    let best = evaluate5([cards[0],cards[1],cards[2],cards[3],cards[4]]);
+    let e = evaluate5([cards[0],cards[1],cards[2],cards[3],cards[5]]);
+    if (compareEval(e, best) > 0) best = e;
+    e = evaluate5([cards[0],cards[1],cards[2],cards[4],cards[5]]);
+    if (compareEval(e, best) > 0) best = e;
+    e = evaluate5([cards[0],cards[1],cards[3],cards[4],cards[5]]);
+    if (compareEval(e, best) > 0) best = e;
+    e = evaluate5([cards[0],cards[2],cards[3],cards[4],cards[5]]);
+    if (compareEval(e, best) > 0) best = e;
+    e = evaluate5([cards[1],cards[2],cards[3],cards[4],cards[5]]);
+    if (compareEval(e, best) > 0) best = e;
+    return best;
+  }
+  if (cards.length === 7) {
+    // C(7,5) = 21 combinations
+    let best = null;
+    for (let i = 0; i < 3; i++) {
+      for (let j = i + 1; j < 4; j++) {
+        // Combo 5 cards = 7 minus 2 cards at positions i, j
+        const combo = [];
+        for (let k = 0; k < 7; k++) {
+          if (k !== i && k !== j) combo.push(cards[k]);
+        }
+        const e = evaluate5(combo);
+        if (!best || compareEval(e, best) > 0) best = e;
+      }
+    }
+    return best;
+  }
+  if (cards.length < 5) {
+    const ranks = cards.map(c => c.rank).sort((a, b) => b - a);
+    return { rank: 0, tiebreakers: ranks, best5: [] };
+  }
+  // Fallback: chung cho 8+ cards (rất hiếm)
+  return combinationsGeneric(cards, 5);
+}
+// Kept cho 8+ cards fallback (chỉ còn dùng nếu buildBest cần)
+function combinationsGeneric(arr, k) {
+  if (k > arr.length) return [];
+  if (k === arr.length) return [arr.slice()];
+  const result = [];
+  for (let i = 0; i <= arr.length - k; i++) {
+    const head = arr[i];
+    const rest = arr.slice(i + 1);
+    const sub = combinationsGeneric(rest, k - 1);
+    for (const tail of sub) result.push([head, ...tail]);
+  }
+  return result;
+}
+
+function compareEval(a, b) {
+  if (a.rank !== b.rank) return a.rank - b.rank;
+  for (let i = 0; i < Math.max(a.tiebreakers.length, b.tiebreakers.length); i++) {
+    const av = a.tiebreakers[i] || 0;
+    const bv = b.tiebreakers[i] || 0;
+    if (av !== bv) return av - bv;
+  }
+  return 0;
+}
+
+// === B.4: Position helpers ===
+const POSITION_RANK = {
+  'UTG': 'EP', 'UTG+1': 'EP', 'MP': 'MP', 'LJ': 'MP', 'HJ': 'MP',
+  'CO': 'LP', 'BTN': 'IP', 'SB': 'OOP', 'BB': 'OOP'
+};
+const POS_MULT = { IP: 0.95, LP: 0.98, MP: 1.05, EP: 1.10, OOP: 1.15 };
+const POS_LABELS = {
+  'UTG': 'UTG (đầu bàn)', 'UTG+1': 'UTG+1', 'MP': 'MP (giữa)', 'LJ': 'LJ',
+  'HJ': 'HJ (cuối giữa)', 'CO': 'CO (cắt)', 'BTN': 'BTN (nút)',
+  'SB': 'SB (mù nhỏ)', 'BB': 'BB (mù lớn)'
+};
+const POS_SHORT = { 'UTG': 'UTG', 'UTG+1': 'UTG+1', 'MP': 'MP', 'LJ': 'LJ', 'HJ': 'HJ', 'CO': 'CO', 'BTN': 'BTN', 'SB': 'SB', 'BB': 'BB' };
+
+function posLabel(p) { return POS_SHORT[p] || p; }
+function posFullLabel(p) { return POS_LABELS[p] || p; }
+
+// B.4: chuyển hero hand thành shorthand key (e.g. "AKo", "TT", "KQs")
+function heroHandKey() {
+  const h = STATE.hero.filter(c => c);
+  if (h.length < 2) return null;
+  const r1 = h[0].rank, r2 = h[1].rank;
+  // Sắp xếp rank cao trước, suit check cho suited/offsuit
+  const hi = Math.max(r1, r2), lo = Math.min(r1, r2);
+  const suited = h[0].suit === h[1].suit;
+  const n1 = hi === 10 ? 'T' : RANK_DISPLAY[hi];
+  const n2 = lo === 10 ? 'T' : RANK_DISPLAY[lo];
+  if (hi === lo) return n1 + n2;
+  if (suited) return n1 + n2 + 's';
+  return n1 + n2 + 'o';
+}
+
+// B.4: check hero hand có trong preset range không
+function isHandInPreset(handKey, pos) {
+  const preset = RANGE_PRESETS_BY_POS[pos];
+  if (!preset) return false;
+  const strength = HAND_STRENGTH[handKey];
+  if (typeof strength !== 'number') return false;
+  return strength >= preset.threshold;
+}
+
+function handNameVN(evalResult) {
+  const r = evalResult.rank;
+  const tb = evalResult.tiebreakers;
+  const rn = (v) => RANK_DISPLAY[v] || '';
+  if (r === 0) return `Mậu thầu, ${rn(tb[0])} cao`;
+  if (r === 1) return `Đôi ${rn(tb[0])}`;
+  if (r === 2) return `Hai đôi, ${rn(tb[0])} & ${rn(tb[1])}`;
+  if (r === 3) return `Sám cô ${rn(tb[0])}`;
+  if (r === 4) {
+    if (tb[0] === 5) return 'Sảnh, 5 cao (wheel)';
+    return `Sảnh, ${rn(tb[0])} cao`;
+  }
+  if (r === 5) return `Thùng, ${rn(tb[0])} cao`;
+  if (r === 6) return `Cù lũ, ${rn(tb[0])} ăn ${rn(tb[1])}`;
+  if (r === 7) return `Tứ quý ${rn(tb[0])}`;
+  if (r === 8) {
+    if (tb[0] === 5) return 'Thùng phá sảnh, 5 cao';
+    return `Thùng phá sảnh, ${rn(tb[0])} cao`;
+  }
+  return 'Không rõ';
+}
+
+// === RANGE ANALYZER ===
+const RANGE_RANKS = [14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2];
+
+function rangeHandName(row, col) {
+  const r1 = RANGE_RANKS[row];
+  const r2 = RANGE_RANKS[col];
+  const n1 = r1 === 10 ? 'T' : RANK_DISPLAY[r1];
+  const n2 = r2 === 10 ? 'T' : RANK_DISPLAY[r2];
+  if (row === col) return n1 + n2;
+  if (row < col) return n1 + n2 + 's';
+  return n2 + n1 + 'o';
+}
+
+// VN label cho từng ô range grid (dùng cho tooltip + legend)
+const RANK_VN = {
+  14: 'Át', 13: 'K', 12: 'Q', 11: 'J', 10: '10',
+  9: '9', 8: '8', 7: '7', 6: '6', 5: '5', 4: '4', 3: '3', 2: '2'
+};
+const PAIR_VN = {
+  14: 'Đôi Át', 13: 'Đôi K', 12: 'Đôi Q', 11: 'Đôi J', 10: 'Đôi 10',
+  9: 'Đôi 9', 8: 'Đôi 8', 7: 'Đôi 7', 6: 'Đôi 6', 5: 'Đôi 5',
+  4: 'Đôi 4', 3: 'Đôi 3', 2: 'Đôi 2'
+};
+function rangeHandNameVN(row, col) {
+  const r1 = RANGE_RANKS[row];
+  const r2 = RANGE_RANKS[col];
+  // Cùng rank (đôi): row === col
+  if (row === col) return PAIR_VN[r1];
+  // Suited (row < col): n1 n2 đồng chất
+  if (row < col) return `${RANK_VN[r1]} ${RANK_VN[r2]} đồng chất`;
+  // Offsuit (row > col): n2 n1 khác chất
+  return `${RANK_VN[r2]} ${RANK_VN[r1]} khác chất`;
+}
+
+const HAND_STRENGTH = {
+  'AA': 0.85, 'KK': 0.82, 'QQ': 0.80, 'JJ': 0.78, 'TT': 0.75, '99': 0.72, '88': 0.69, '77': 0.66, '66': 0.63, '55': 0.60, '44': 0.57, '33': 0.54, '22': 0.51,
+  'AKs': 0.67, 'AQs': 0.66, 'AJs': 0.65, 'ATs': 0.64, 'A9s': 0.62, 'A8s': 0.61, 'A7s': 0.60, 'A6s': 0.59, 'A5s': 0.60, 'A4s': 0.59, 'A3s': 0.58, 'A2s': 0.57,
+  'KQs': 0.63, 'KJs': 0.62, 'KTs': 0.61, 'K9s': 0.59, 'K8s': 0.58, 'K7s': 0.57, 'K6s': 0.56, 'K5s': 0.55, 'K4s': 0.54, 'K3s': 0.53, 'K2s': 0.52,
+  'QJs': 0.60, 'QTs': 0.59, 'Q9s': 0.57, 'Q8s': 0.55, 'Q7s': 0.54, 'Q6s': 0.53, 'Q5s': 0.52, 'Q4s': 0.51, 'Q3s': 0.50, 'Q2s': 0.49,
+  'JTs': 0.58, 'J9s': 0.56, 'J8s': 0.54, 'J7s': 0.52, 'J6s': 0.50, 'J5s': 0.49, 'J4s': 0.48, 'J3s': 0.47, 'J2s': 0.46,
+  'T9s': 0.55, 'T8s': 0.53, 'T7s': 0.51, 'T6s': 0.49, 'T5s': 0.48, 'T4s': 0.47, 'T3s': 0.46, 'T2s': 0.45,
+  '98s': 0.53, '97s': 0.51, '96s': 0.49, '95s': 0.47, '94s': 0.45, '93s': 0.44, '92s': 0.43,
+  '87s': 0.51, '86s': 0.49, '85s': 0.47, '84s': 0.45, '83s': 0.43, '82s': 0.42,
+  '76s': 0.50, '75s': 0.48, '74s': 0.46, '73s': 0.44, '72s': 0.42,
+  '65s': 0.49, '64s': 0.47, '63s': 0.45, '62s': 0.43,
+  '54s': 0.48, '53s': 0.46, '52s': 0.44,
+  '43s': 0.45, '42s': 0.43, '32s': 0.42,
+  'AKo': 0.65, 'AQo': 0.64, 'AJo': 0.63, 'ATo': 0.62, 'A9o': 0.59, 'A8o': 0.58, 'A7o': 0.56, 'A6o': 0.55, 'A5o': 0.56, 'A4o': 0.54, 'A3o': 0.53, 'A2o': 0.52,
+  'KQo': 0.61, 'KJo': 0.59, 'KTo': 0.58, 'K9o': 0.55, 'K8o': 0.53, 'K7o': 0.52, 'K6o': 0.50, 'K5o': 0.49, 'K4o': 0.48, 'K3o': 0.47, 'K2o': 0.46,
+  'QJo': 0.58, 'QTo': 0.56, 'Q9o': 0.53, 'Q8o': 0.51, 'Q7o': 0.49, 'Q6o': 0.48, 'Q5o': 0.46, 'Q4o': 0.45, 'Q3o': 0.44, 'Q2o': 0.43,
+  'JTo': 0.55, 'J9o': 0.52, 'J8o': 0.50, 'J7o': 0.48, 'J6o': 0.46, 'J5o': 0.44, 'J4o': 0.43, 'J3o': 0.42, 'J2o': 0.41,
+  'T9o': 0.52, 'T8o': 0.49, 'T7o': 0.47, 'T6o': 0.45, 'T5o': 0.43, 'T4o': 0.41, 'T3o': 0.40, 'T2o': 0.39,
+  '98o': 0.49, '97o': 0.46, '96o': 0.44, '95o': 0.42, '94o': 0.40, '93o': 0.38, '92o': 0.37,
+  '87o': 0.47, '86o': 0.44, '85o': 0.42, '84o': 0.40, '83o': 0.38, '82o': 0.37,
+  '76o': 0.45, '75o': 0.43, '74o': 0.40, '73o': 0.38, '72o': 0.36,
+  '65o': 0.43, '64o': 0.41, '63o': 0.38, '62o': 0.36,
+  '54o': 0.41, '53o': 0.38, '52o': 0.36,
+  '43o': 0.37, '42o': 0.34, '32o': 0.32
+};
+
+// B.5: Range presets theo vị trí bàn (9-max RFI data tham khảo cộng đồng)
+// threshold: ngưỡng trên HAND_STRENGTH. Càng cao → range càng chặt.
+const RANGE_PRESETS_BY_POS = {
+  'UTG':    { threshold: 0.55, label: 'UTG (9%)' },     // top ~14 hands
+  'UTG+1':  { threshold: 0.54, label: 'UTG+1 (11%)' },
+  'MP':     { threshold: 0.53, label: 'MP (13%)' },
+  'LJ':     { threshold: 0.52, label: 'LJ (16%)' },
+  'HJ':     { threshold: 0.51, label: 'HJ (19%)' },
+  'CO':     { threshold: 0.49, label: 'CO (25%)' },
+  'BTN':    { threshold: 0.45, label: 'BTN (45%)' },    // mở rộng nhất
+  'SB':     { threshold: 0.48, label: 'SB open (30%)' },
+  'BB':     { threshold: 0.43, label: 'BB defend (50%)' } // defend rộng
+};
+
+function applyRangeFilter(filter) {
+  const cells = {};
+  if (filter === 'all') {
+    for (let r = 0; r < 13; r++) for (let c = 0; c < 13; c++) cells[`${r},${c}`] = true;
+  } else if (filter === 'pairs') {
+    for (let r = 0; r < 13; r++) cells[`${r},${r}`] = true;
+  } else if (filter === 'top10' || filter === 'top20') {
+    const threshold = filter === 'top10' ? 0.58 : 0.52;
+    for (let r = 0; r < 13; r++) for (let c = 0; c < 13; c++) {
+      if (HAND_STRENGTH[rangeHandName(r, c)] >= threshold) cells[`${r},${c}`] = true;
+    }
+  } else if (filter === 'suited') {
+    for (let r = 0; r < 13; r++) for (let c = 0; c < 13; c++) {
+      if (r < c) cells[`${r},${c}`] = true;
+    }
+  } else if (RANGE_PRESETS_BY_POS[filter]) {
+    // B.5: preset theo vị trí
+    const th = RANGE_PRESETS_BY_POS[filter].threshold;
+    for (let r = 0; r < 13; r++) for (let c = 0; c < 13; c++) {
+      if (HAND_STRENGTH[rangeHandName(r, c)] >= th) cells[`${r},${c}`] = true;
+    }
+  }
+  return cells;
+}
+
+function getActiveRangeHands(activeCells) {
+  return Object.keys(activeCells).filter(k => activeCells[k]).map(k => k.split(',').map(Number));
+}
+
+// === EQUITY CALCULATOR ===
+function preflopEquityExact(heroHand, numOpps) {
+  const key = `preflop:${cardStr(heroHand[0])}${cardStr(heroHand[1])}:${numOpps}`;
+  if (localStorage) {
+    try {
+      const cached = JSON.parse(localStorage.getItem(key));
+      if (cached && typeof cached.win === 'number') return cached;
+    } catch (e) {}
+  }
+  const trials = STATE.trials;
+  let win = 0, tie = 0, lose = 0;
+  // Opt #1: build deck once, shuffle in place per trial (no per-trial allocations)
+  const deck = buildAvailableDeck(heroHand);
+  for (let i = 0; i < trials; i++) {
+    partialShuffleInPlace(deck);
+    let idx = 0;
+    const oppHands = [];
+    for (let o = 0; o < numOpps; o++) oppHands.push([deck[idx++], deck[idx++]]);
+    const board = [deck[idx++], deck[idx++], deck[idx++], deck[idx++], deck[idx++]];
+    const heroEval = evaluateBest([...heroHand, ...board]);
+    let heroWins = true, isTie = false;
+    for (const opp of oppHands) {
+      const oppEval = evaluateBest([...opp, ...board]);
+      const cmp = compareEval(heroEval, oppEval);
+      if (cmp < 0) { heroWins = false; isTie = false; break; }
+      else if (cmp === 0) isTie = true;
+    }
+    if (!heroWins) lose++;
+    else if (isTie) tie++;
+    else win++;
+  }
+  const result = { win: win / trials, tie: tie / trials, lose: lose / trials, equity: (win + tie / 2) / trials };
+  if (localStorage) try { localStorage.setItem(key, JSON.stringify(result)); } catch (e) {}
+  return result;
+}
+
+function monteCarloEquity(heroHand, board, numOpps, trials, trackRanks) {
+  trials = trials || STATE.trials;
+  let win = 0, tie = 0, lose = 0;
+  const knownCards = [...heroHand, ...board.filter(c => c)];
+  // Opt #1: deck built once, shuffled in place per trial
+  const deck = buildAvailableDeck(knownCards);
+  // A.3: track distribution of hand ranks that hero wins with
+  const rankBuckets = trackRanks ? [0,0,0,0,0,0,0,0,0] : null;
+  for (let i = 0; i < trials; i++) {
+    partialShuffleInPlace(deck);
+    let idx = 0;
+    const oppHands = [];
+    for (let o = 0; o < numOpps; o++) oppHands.push([deck[idx++], deck[idx++]]);
+    const fullBoard = [...board.filter(c => c)];
+    while (fullBoard.length < 5) fullBoard.push(deck[idx++]);
+    const heroEval = evaluateBest([...heroHand, ...fullBoard]);
+    let heroWins = true, isTie = false;
+    for (const opp of oppHands) {
+      const oppEval = evaluateBest([...opp, ...fullBoard]);
+      const cmp = compareEval(heroEval, oppEval);
+      if (cmp < 0) { heroWins = false; isTie = false; break; }
+      else if (cmp === 0) isTie = true;
+    }
+    if (!heroWins) lose++;
+    else if (isTie) tie++;
+    else {
+      win++;
+      if (rankBuckets) rankBuckets[heroEval.rank]++;
+    }
+  }
+  const result = { win: win / trials, tie: tie / trials, lose: lose / trials, equity: (win + tie / 2) / trials };
+  if (trackRanks) {
+    // rankBuckets[i] = count of wins with hand rank i (0=high..8=straightFlush)
+    result.rankWins = rankBuckets.map(c => c / trials);
+  }
+  return result;
+}
+
+function monteCarloEquityWithRange(heroHand, board, numOpps, activeCells, trials, trackRanks) {
+  trials = trials || STATE.trials;
+  const hands = getActiveRangeHands(activeCells);
+  if (hands.length === 0) return { win: 0, tie: 0, lose: 1, equity: 0 };
+  let win = 0, tie = 0, lose = 0;
+  const knownCards = [...heroHand, ...board.filter(c => c)];
+  // Opt #1: deck built once, shuffled in place per trial
+  const deck = buildAvailableDeck(knownCards);
+  // Hoist initial usedSet (H-1 fix: was rebuilt per trial)
+  const baseUsedIds = knownCards.map(c => cardId(c));
+  const rankBuckets = trackRanks ? [0,0,0,0,0,0,0,0,0] : null;
+  for (let i = 0; i < trials; i++) {
+    partialShuffleInPlace(deck);
+    let idx = 0;
+    const oppHands = [];
+    const usedSet = new Set(baseUsedIds);
+    let trialValid = true;
+    for (let o = 0; o < numOpps; o++) {
+      let sampled = null, attempts = 0;
+      while (attempts < 10 && !sampled) {
+        const [row, col] = hands[Math.floor(Math.random() * hands.length)];
+        const r1 = RANGE_RANKS[row], r2 = RANGE_RANKS[col];
+        const isPair = r1 === r2, isSuited = row < col;
+        const s1 = Math.floor(Math.random() * 4);
+        let c1, c2;
+        if (isPair) { c1 = { rank: r1, suit: s1 }; let s2; do { s2 = Math.floor(Math.random() * 4); } while (s2 === s1); c2 = { rank: r2, suit: s2 }; }
+        else if (isSuited) { c1 = { rank: r1, suit: s1 }; c2 = { rank: r2, suit: s1 }; }
+        else { c1 = { rank: r1, suit: s1 }; let s2; do { s2 = Math.floor(Math.random() * 4); } while (s2 === s1); c2 = { rank: r2, suit: s2 }; }
+        if (!usedSet.has(cardId(c1)) && !usedSet.has(cardId(c2))) {
+          sampled = [c1, c2];
+          usedSet.add(cardId(c1)); usedSet.add(cardId(c2));
+        }
+        attempts++;
+      }
+      if (!sampled) { trialValid = false; break; }
+      oppHands.push(sampled);
+    }
+    if (!trialValid) continue;
+    const fullBoard = [...board.filter(c => c)];
+    while (fullBoard.length < 5) fullBoard.push(deck[idx++]);
+    const heroEval = evaluateBest([...heroHand, ...fullBoard]);
+    let heroWins = true, isTie = false;
+    for (const opp of oppHands) {
+      const oppEval = evaluateBest([...opp, ...fullBoard]);
+      const cmp = compareEval(heroEval, oppEval);
+      if (cmp < 0) { heroWins = false; isTie = false; break; }
+      else if (cmp === 0) isTie = true;
+    }
+    if (!heroWins) lose++;
+    else if (isTie) tie++;
+    else {
+      win++;
+      if (rankBuckets) rankBuckets[heroEval.rank]++;
+    }
+  }
+  const validTrials = win + tie + lose;
+  if (validTrials === 0) return { win: 0, tie: 0, lose: 1, equity: 0 };
+  const result = { win: win / validTrials, tie: tie / validTrials, lose: lose / validTrials, equity: (win + tie / 2) / validTrials };
+  if (trackRanks) result.rankWins = rankBuckets.map(c => c / validTrials);
+  return result;
+}
+
+// === OUTS CALCULATOR ===
+function calculateOuts(heroHand, board) {
+  if (board.length < 3) return { total: 0, byType: {}, outs: [] };
+  const knownCards = [...heroHand, ...board];
+  const remaining = allCards().filter(c => !knownCards.some(k => k.rank === c.rank && k.suit === c.suit));
+  const currentEval = evaluateBest([...heroHand, ...board]);
+  const outs = [];
+  const byType = { straightFlush: 0, flush: 0, straight: 0, set: 0, twoPair: 0 };
+  for (const card of remaining) {
+    const newHand = evaluateBest([...heroHand, ...board, card]);
+    const improvement = classifyOut(newHand, currentEval);
+    if (improvement) {
+      outs.push({ card, type: improvement });
+      byType[improvement]++;
+    }
+  }
+  return { total: outs.length, byType, outs };
+}
+
+function classifyOut(newEval, oldEval) {
+  // D.5: tách straight-flush (rank 8) ra khỏi "Thùng" — thành "Thùng phá sảnh" riêng
+  if (newEval.rank === 8 && oldEval.rank !== 8) return 'straightFlush';
+  if (newEval.rank === 5 && oldEval.rank !== 5) return 'flush';
+  // H-2 fix: same-rank improvement (e.g. wheel→A-high straight) — compare tiebreakers
+  if (newEval.rank === 5 && oldEval.rank === 5 && newEval.tiebreakers[0] > oldEval.tiebreakers[0]) return 'flush';
+  if (newEval.rank === 4 && oldEval.rank !== 4) return 'straight';
+  if (newEval.rank === 4 && oldEval.rank === 4 && newEval.tiebreakers[0] > oldEval.tiebreakers[0]) return 'straight';
+  if (newEval.rank === 7 && oldEval.rank < 7) return 'set';
+  if (newEval.rank === 6 && oldEval.rank < 6) return 'set';
+  if (newEval.rank === 3 && oldEval.rank < 3) return 'set';
+  if (newEval.rank === 2 && oldEval.rank < 2) return 'twoPair';
+  return null;
+}
+
+// === APP STATE ===
+const STATE = {
+  hero: [null, null],
+  board: [null, null, null, null, null],
+  extraBoards: [],  // A.4: optional alt boards. Each = 5-card array
+  numOpps: 1,
+  activeRange: {},
+  pot: 100,
+  call: 25,
+  pickerTarget: null,
+  pickerRank: 14,
+  equity: null,
+  outs: null,
+  trials: 2000,  // Opt #3: default 2000 trials (was 4000). Toggle to 4000 for high precision.
+  precision: 'thuong',  // 'thuong' | 'cao'
+  position: 'BTN',  // B.4: vị trí bàn
+  sb: 1,            // small blind amount
+  bb: 2,            // big blind amount
+  rangeView: 'preset'  // B.6: 'preset' | 'grid' — view cho range section
+};
+
+const STATE_KEY = 'poker:state:v1';
+
+function saveState() {
+  try {
+    const data = {
+      hero: STATE.hero,
+      board: STATE.board,
+      numOpps: STATE.numOpps,
+      activeRange: STATE.activeRange,
+      pot: STATE.pot,
+      call: STATE.call,
+      precision: STATE.precision,
+      position: STATE.position,
+      sb: STATE.sb,
+      bb: STATE.bb,
+      rangeView: STATE.rangeView
+    };
+    localStorage.setItem(STATE_KEY, JSON.stringify(data));
+  } catch (e) {}
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STATE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data.hero && Array.isArray(data.hero) && data.hero.length === 2) {
+      STATE.hero = data.hero.map(c => (c && typeof c.rank === 'number') ? c : null);
+    }
+    if (data.board && Array.isArray(data.board) && data.board.length === 5) {
+      STATE.board = data.board.map(c => (c && typeof c.rank === 'number') ? c : null);
+    }
+    if (typeof data.numOpps === 'number') STATE.numOpps = Math.max(1, Math.min(9, data.numOpps));
+    if (data.activeRange && typeof data.activeRange === 'object') STATE.activeRange = data.activeRange;
+    if (typeof data.pot === 'number') STATE.pot = Math.max(0, data.pot);
+    if (typeof data.call === 'number') STATE.call = Math.max(0, data.call);
+    if (data.precision === 'thuong' || data.precision === 'cao') {
+      STATE.precision = data.precision;
+      STATE.trials = data.precision === 'cao' ? 4000 : 2000;
+    }
+    // B.3: position + blinds
+    const validPositions = ['UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+    if (validPositions.includes(data.position)) STATE.position = data.position;
+    if (typeof data.sb === 'number') STATE.sb = Math.max(0, data.sb);
+    if (typeof data.bb === 'number') STATE.bb = Math.max(0, data.bb);
+    if (data.rangeView === 'preset' || data.rangeView === 'grid') STATE.rangeView = data.rangeView;
+  } catch (e) {}
+}
+
+function $(sel) { return document.querySelector(sel); }
+function el(tag, attrs, children) {
+  attrs = attrs || {};
+  children = children || [];
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') e.className = v;
+    else if (k === 'style') e.style.cssText = v;
+    else if (k === 'html') e.innerHTML = v;
+    else if (k.startsWith('on') && typeof v === 'function') e.addEventListener(k.slice(2), v);
+    else if (v != null) e.setAttribute(k, v);
+  }
+  for (const c of children) {
+    if (typeof c === 'string' || typeof c === 'number') e.appendChild(document.createTextNode(String(c)));
+    else if (c) e.appendChild(c);
+  }
+  return e;
+}
+
+// === CARD RENDERERS ===
+function renderPlayingCard(card) {
+  if (!card) return null;
+  const color = SUIT_COLORS[SUITS[card.suit]];
+  const rank = RANK_DISPLAY[card.rank];
+  const suit = SUIT_SYMBOLS[SUITS[card.suit]];
+  const cardEl = el('div', { class: 'playing-card ' + color });
+  const tl = el('div', { class: 'corner tl' });
+  tl.innerHTML = `<span class="rank">${rank}</span><span class="suit">${suit}</span>`;
+  const br = el('div', { class: 'corner br' });
+  br.innerHTML = `<span class="rank">${rank}</span><span class="suit">${suit}</span>`;
+  cardEl.appendChild(tl);
+  cardEl.appendChild(br);
+  cardEl.appendChild(el('div', { class: 'center-suit' }, [suit]));
+  return cardEl;
+}
+
+function renderCardSlot(type, index, card) {
+  const filled = !!card;
+  const slot = el('div', {
+    class: 'card-slot' + (filled ? ' filled' : ''),
+    onclick: () => openPicker(type, index)
+  });
+  if (filled) {
+    slot.appendChild(renderPlayingCard(card));
+    const x = el('div', {
+      class: 'clear-x',
+      onclick: (e) => { e.stopPropagation(); clearSlot(type, index); }
+    }, ['×']);
+    slot.appendChild(x);
+  }
+  return slot;
+}
+
+function openPicker(type, indexOrOpts) {
+  // For extraBoard: indexOrOpts = { boardIndex, cardIndex }
+  if (type === 'extraBoard') {
+    STATE.pickerTarget = { type, boardIndex: indexOrOpts.boardIndex, cardIndex: indexOrOpts.cardIndex };
+  } else {
+    STATE.pickerTarget = { type, index: indexOrOpts };
+  }
+  STATE.pickerRank = 14;
+  renderPicker();
+  $('#sheet').classList.add('open');
+  setTimeout(() => $('#sheetOverlay').classList.add('open'), 10);
+  haptic(10);
+}
+function closePicker() {
+  $('#sheetOverlay').classList.remove('open');
+  STATE.pickerTarget = null;
+}
+function clearSlot(type, indexOrOpts) {
+  pushHistory(type);
+  if (type === 'hero') STATE.hero[indexOrOpts] = null;
+  else if (type === 'board') STATE.board[indexOrOpts] = null;
+  else if (type === 'extraBoard') STATE.extraBoards[indexOrOpts.boardIndex][indexOrOpts.cardIndex] = null;
+  closePicker();
+  render();
+  saveState();
+  scheduleCalc();
+}
+
+// A.4: multi-board
+function addExtraBoard() {
+  if (STATE.extraBoards.length >= 2) return;
+  pushHistory('extraBoard-add');
+  STATE.extraBoards.push([null, null, null, null, null]);
+  renderExtraBoards();
+  saveState();
+  scheduleCalc();
+}
+function removeExtraBoard(boardIndex) {
+  pushHistory('extraBoard-remove');
+  STATE.extraBoards.splice(boardIndex, 1);
+  renderExtraBoards();
+  saveState();
+  scheduleCalc();
+}
+function renderExtraBoards() {
+  const wrap = $('#extraBoardsList');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  STATE.extraBoards.forEach((board, bi) => {
+    const filled = board.filter(c => c).length;
+    const row = el('div', { class: 'eb-board' });
+    const header = el('div', { class: 'eb-board-header' });
+    header.appendChild(el('span', {}, [`Bộ ${bi + 2} — ${filled}/5 lá`]));
+    header.appendChild(el('button', {
+      class: 'eb-remove',
+      onclick: () => removeExtraBoard(bi)
+    }, ['Xóa']));
+    row.appendChild(header);
+    const slotRow = el('div', { class: 'eb-row' });
+    for (let i = 0; i < 5; i++) {
+      const card = board[i];
+      const slot = el('div', {
+        class: 'card-slot small' + (card ? ' filled' : ''),
+        onclick: () => openPicker('extraBoard', { boardIndex: bi, cardIndex: i })
+      });
+      if (card) {
+        const color = SUIT_COLORS[SUITS[card.suit]];
+        slot.innerHTML = `<div class="card-mini ${color}"><span class="rank">${RANK_DISPLAY[card.rank]}</span><span class="suit">${SUIT_SYMBOLS[SUITS[card.suit]]}</span></div>`;
+      } else {
+        slot.innerHTML = '<span class="plus">+</span>';
+      }
+      slotRow.appendChild(slot);
+    }
+    row.appendChild(slotRow);
+    wrap.appendChild(row);
+  });
+  $('#extraBoards').hidden = STATE.extraBoards.length === 0;
+}
+
+function renderPicker() {
+  const rankEl = $('#pickerRanks');
+  const suitEl = $('#pickerSuits');
+  rankEl.innerHTML = '';
+  suitEl.innerHTML = '';
+  // Rank chips: A K Q J T 9 8 7 6 5 4 3 2
+  const rankOrder = [14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2];
+  for (const r of rankOrder) {
+    const lbl = r === 10 ? 'T' : RANK_DISPLAY[r];
+    rankEl.appendChild(el('button', {
+      class: 'picker-rank' + (STATE.pickerRank === r ? ' active' : ''),
+      onclick: () => { STATE.pickerRank = r; renderPicker(); }
+    }, [lbl]));
+  }
+  // 4 suits of selected rank. VN order: Cơ(♥=h) → Rô(♦=d) → Chuồn(♣=c) → Bích(♠=s)
+  const usedCards = [...STATE.hero, ...STATE.board, ...STATE.extraBoards.flat()].filter(c => c);
+  const suitOrder = [1, 2, 3, 0]; // indexes into SUITS=['s','h','d','c']: h, d, c, s
+  for (const s of suitOrder) {
+    const card = { rank: STATE.pickerRank, suit: s };
+    const isUsed = usedCards.some(u => u.rank === card.rank && u.suit === card.suit);
+    const color = SUIT_COLORS[SUITS[s]];
+    const cardEl = el('div', {
+      class: 'picker-card ' + color + (isUsed ? ' used' : ''),
+      onclick: () => { if (!isUsed) selectPickerCard(card); }
+    });
+    const r = STATE.pickerRank === 10 ? 'T' : RANK_DISPLAY[STATE.pickerRank];
+    cardEl.innerHTML = `<span class="rank">${r}</span><span class="suit">${SUIT_SYMBOLS[SUITS[s]]}</span>`;
+    suitEl.appendChild(cardEl);
+  }
+  // D.1: swipe handler cho sheet (vertical swipe up/down để đổi rank)
+  initSwipeGesture();
+}
+
+// D.1: swipe gesture trên sheet để đổi rank
+let swipeStartY = null;
+let swipeStartX = null;
+function initSwipeGesture() {
+  const sheet = $('#sheet');
+  if (!sheet || sheet.dataset.swipeInit === '1') return;
+  sheet.dataset.swipeInit = '1';
+  sheet.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    swipeStartY = e.touches[0].clientY;
+    swipeStartX = e.touches[0].clientX;
+  }, { passive: true });
+  sheet.addEventListener('touchend', (e) => {
+    if (swipeStartY === null) return;
+    const t = e.changedTouches[0];
+    const dy = t.clientY - swipeStartY;
+    const dx = t.clientX - swipeStartX;
+    swipeStartY = null; swipeStartX = null;
+    // Vertical swipe: |dy| > 50, |dy| > |dx|*1.5
+    if (Math.abs(dy) < 50 || Math.abs(dy) < Math.abs(dx) * 1.5) return;
+    const rankOrder = [14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2];
+    const cur = rankOrder.indexOf(STATE.pickerRank);
+    if (cur < 0) return;
+    if (dy < 0 && cur < rankOrder.length - 1) {
+      // swipe up = next rank (lower value, ví dụ A → K → Q)
+      STATE.pickerRank = rankOrder[cur + 1];
+      haptic(8);
+      renderPicker();
+    } else if (dy > 0 && cur > 0) {
+      // swipe down = prev rank (higher value, ví dụ 2 → 3 → A)
+      STATE.pickerRank = rankOrder[cur - 1];
+      haptic(8);
+      renderPicker();
+    }
+  }, { passive: true });
+}
+
+function selectPickerCard(card) {
+  if (!STATE.pickerTarget) return;
+  const { type, index, boardIndex, cardIndex } = STATE.pickerTarget;
+  pushHistory(type);
+  if (type === 'hero') STATE.hero[index] = card;
+  else if (type === 'board') STATE.board[index] = card;
+  else if (type === 'extraBoard') STATE.extraBoards[boardIndex][cardIndex] = card;
+  haptic(15);
+  closePicker();
+  render();
+  saveState();
+  scheduleCalc();
+}
+
+// === EQUITY RENDERING ===
+let calcTimer = null;
+function scheduleCalc() {
+  clearTimeout(calcTimer);
+  calcTimer = setTimeout(runEquity, 220);
+}
+
+function runEquity() {
+  const hero = STATE.hero.filter(c => c);
+  if (hero.length < 2) {
+    STATE.equity = null;
+    STATE.outs = null;
+    renderEquity();
+    renderOuts();
+    renderBestHand();
+    return;
+  }
+  const board = STATE.board.filter(c => c);
+  const numOpps = STATE.numOpps;
+  let result;
+  // A.4: nếu có extraBoards, tính equity trung bình qua tất cả bộ board
+  const allBoards = [board, ...STATE.extraBoards.filter(b => b.some(c => c))];
+  if (allBoards.length > 1) {
+    // Multi-board: avg
+    let agg = { win: 0, tie: 0, lose: 0, equity: 0, rankWins: null };
+    const validBoards = [];
+    for (const b of allBoards) {
+      const bFilled = b.filter(c => c).length;
+      if (bFilled < 3) continue; // postflop only
+      validBoards.push(b);
+    }
+    if (validBoards.length === 0) {
+      // fallback như cũ
+      if (board.length === 0) {
+        try { result = preflopEquityExact(hero, numOpps); }
+        catch (e) { result = monteCarloEquity(hero, board, numOpps, 3000); }
+      } else {
+        result = monteCarloEquity(hero, board, numOpps, 4000, true);
+      }
+    } else {
+      const t = Math.max(1000, Math.floor(STATE.trials / validBoards.length));
+      for (const b of validBoards) {
+        const r = monteCarloEquity(hero, b, numOpps, t, true);
+        agg.win += r.win;
+        agg.tie += r.tie;
+        agg.lose += r.lose;
+        agg.equity += r.equity;
+        if (r.rankWins) {
+          if (!agg.rankWins) agg.rankWins = r.rankWins.map(v => v);
+          else r.rankWins.forEach((v, i) => agg.rankWins[i] += v);
+        }
+      }
+      const n = validBoards.length;
+      agg.win /= n; agg.tie /= n; agg.lose /= n; agg.equity /= n;
+      if (agg.rankWins) agg.rankWins = agg.rankWins.map(v => v / n);
+      result = agg;
+    }
+  } else if (board.length === 0) {
+    try { result = preflopEquityExact(hero, numOpps); }
+    catch (e) { result = monteCarloEquity(hero, board, numOpps, 3000); }
+  } else {
+    const totalCells = 169;
+    const activeCount = Object.values(STATE.activeRange).filter(v => v).length;
+    if (activeCount < totalCells) {
+      result = monteCarloEquityWithRange(hero, board, numOpps, STATE.activeRange, 4000, true);
+    } else {
+      result = monteCarloEquity(hero, board, numOpps, 4000, true);
+    }
+  }
+  STATE.equity = result;
+  STATE.outs = (board.length >= 3 && board.length < 5) ? calculateOuts(hero, board) : null;
+  // A.2: equity-by-street chỉ tính ở preflop (0 board) — 4 điểm: preflop, flop, turn, river
+  STATE.equityByStreet = null;
+  if (board.length === 0) {
+    try {
+      const t = Math.max(1000, Math.floor(STATE.trials / 2));
+      // Preflop: đã có ở result
+      const preflop = result.equity;
+      // Flop/turn/river: dùng helper equityAtStreet
+      const flopEq = equityAtStreet(hero, 3, numOpps, t);
+      const turnEq = equityAtStreet(hero, 4, numOpps, t);
+      const riverEq = result.equity; // = equityAtStreet(hero, 5)
+      STATE.equityByStreet = { preflop, flop: flopEq, turn: turnEq, river: riverEq };
+    } catch (e) {
+      STATE.equityByStreet = null;
+    }
+  }
+  renderEquity();
+  renderOuts();
+  renderBestHand();
+  renderPot();
+  renderShowdownBreakdown();
+}
+
+// Helper cho A.2: tính equity khi đã biết N board cards (0 ≤ N ≤ 5), random phần còn lại
+function equityAtStreet(heroHand, knownBoardLen, numOpps, trials) {
+  const knownCards = [...heroHand];
+  const deck = buildAvailableDeck(knownCards);
+  let win = 0, tie = 0;
+  for (let i = 0; i < trials; i++) {
+    partialShuffleInPlace(deck);
+    let idx = 0;
+    const oppHands = [];
+    for (let o = 0; o < numOpps; o++) oppHands.push([deck[idx++], deck[idx++]]);
+    const fullBoard = [];
+    for (let b = 0; b < 5; b++) fullBoard.push(deck[idx++]);
+    const heroEval = evaluateBest([...heroHand, ...fullBoard]);
+    let heroWins = true, isTie = false;
+    for (const opp of oppHands) {
+      const oppEval = evaluateBest([...opp, ...fullBoard]);
+      const cmp = compareEval(heroEval, oppEval);
+      if (cmp < 0) { heroWins = false; isTie = false; break; }
+      else if (cmp === 0) isTie = true;
+    }
+    if (heroWins) {
+      if (isTie) tie++;
+      else win++;
+    }
+  }
+  return (win + tie / 2) / trials;
+}
+
+function renderEquity() {
+  const eq = STATE.equity;
+  const heroCount = STATE.hero.filter(c => c).length;
+  const numEl = $('#equityNumber');
+  const fillEl = $('#equityFill');
+  const winEl = $('#eqWin');
+  const tieEl = $('#eqTie');
+  const loseEl = $('#eqLose');
+  const hero = $('#equityHero');
+  const vsLabel = $('#equityVsLabel');
+  const vsValue = $('#equityVsValue');
+  const vsSub = $('#equityVsSub');
+  if (!eq) {
+    numEl.innerHTML = '—';
+    fillEl.style.strokeDashoffset = '377';
+    winEl.textContent = '—';
+    tieEl.textContent = '—';
+    loseEl.textContent = '—';
+    hero.removeAttribute('data-sentiment');
+    vsLabel.textContent = heroCount < 2 ? 'Chọn bài của bạn' : 'Đang tính...';
+    vsValue.textContent = '';
+    vsSub.textContent = '';
+    return;
+  }
+  const pct = eq.equity * 100;
+  numEl.innerHTML = pct.toFixed(1) + '<span class="equity-pct-suffix">%</span>';
+  const circumference = 2 * Math.PI * 60;
+  fillEl.style.strokeDasharray = String(circumference);
+  fillEl.style.strokeDashoffset = String(circumference * (1 - Math.min(eq.equity, 1)));
+  winEl.textContent = Math.round(eq.win * 100) + '%';
+  tieEl.textContent = Math.round(eq.tie * 100) + '%';
+  loseEl.textContent = Math.round(eq.lose * 100) + '%';
+  let sentiment = 'neutral';
+  if (pct >= 65) sentiment = 'great';
+  else if (pct >= 45) sentiment = 'decent';
+  else if (pct < 20) sentiment = 'bad';
+  else if (pct < 45) sentiment = 'neutral';
+  hero.setAttribute('data-sentiment', sentiment);
+  vsLabel.textContent = `Tỉ lệ thắng`;
+  vsValue.textContent = `${STATE.numOpps} đối thủ`;
+  vsSub.textContent = heroCount === 2
+    ? (STATE.extraBoards.some(b => b.some(c => c)) ? `Trung bình ${1 + STATE.extraBoards.filter(b => b.some(c => c)).length} bộ board` : `Mô phỏng Monte Carlo`)
+    : `Chọn 2 lá bài để bắt đầu`;
+  renderEquityByStreet();
+}
+
+// A.2: mini chart equity preflop→flop→turn→river. Chỉ hiện khi có STATE.equityByStreet.
+function renderEquityByStreet() {
+  const container = $('#equityStreetChart');
+  if (!container) return;
+  const data = STATE.equityByStreet;
+  if (!data) { container.hidden = true; container.innerHTML = ''; return; }
+  // SVG dimensions
+  const W = 320, H = 80, PAD = 16;
+  const streets = [
+    { key: 'preflop', label: 'Preflop' },
+    { key: 'flop', label: 'Flop' },
+    { key: 'turn', label: 'Turn' },
+    { key: 'river', label: 'River' }
+  ];
+  const xs = streets.map((_, i) => PAD + (i * (W - 2 * PAD)) / (streets.length - 1));
+  const ys = streets.map(s => {
+    const pct = data[s.key];
+    // Map 0-1 to H-PAD..PAD
+    return (H - PAD) - pct * (H - 2 * PAD);
+  });
+  const pathD = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ');
+  const pointsHtml = xs.map((x, i) => {
+    const isCurrent = i === xs.length - 1; // river
+    return `<circle class="esc-point${isCurrent ? ' esc-point-current' : ''}" cx="${x.toFixed(1)}" cy="${ys[i].toFixed(1)}" r="4"/>` +
+           `<text class="esc-value" x="${x.toFixed(1)}" y="${(ys[i] - 8).toFixed(1)}" text-anchor="middle">${Math.round(data[streets[i].key] * 100)}%</text>`;
+  }).join('');
+  const labelsHtml = xs.map((x, i) =>
+    `<text class="esc-label" x="${x.toFixed(1)}" y="${(H - 2).toFixed(1)}" text-anchor="middle">${streets[i].label}</text>`
+  ).join('');
+  container.innerHTML = `
+    <div class="esc-title">Equity theo vòng</div>
+    <svg class="esc-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+      <line class="esc-axis" x1="${PAD}" y1="${(H - PAD).toFixed(1)}" x2="${(W - PAD).toFixed(1)}" y2="${(H - PAD).toFixed(1)}"/>
+      <path class="esc-line" d="${pathD}"/>
+      ${pointsHtml}
+      ${labelsHtml}
+    </svg>
+  `;
+  container.hidden = false;
+}
+
+// A.3: showdown breakdown — phân bố % mỗi loại hand hero wins. Chỉ postflop.
+const SHOWDOWN_LABELS = {
+  0: 'Mậu thầu',
+  1: 'Một đôi',
+  2: 'Hai đôi',
+  3: 'Sám cô',
+  4: 'Sảnh',
+  5: 'Thùng',
+  6: 'Cù lũ',
+  7: 'Tứ quý',
+  8: 'Thùng phá sảnh'
+};
+function renderShowdownBreakdown() {
+  const container = $('#equityShowdownBreakdown');
+  if (!container) return;
+  const eq = STATE.equity;
+  if (!eq || !eq.rankWins || (!STATE.board.some(c => c) && !STATE.extraBoards.some(b => b.some(c => c)))) {
+    container.hidden = true;
+    container.innerHTML = '';
+    return;
+  }
+  // rankWins[i] = % hero wins với rank i. Sort giảm dần, lấy top 6 + gộp "Khác" nếu còn.
+  const items = eq.rankWins.map((pct, rank) => ({ rank, pct, label: SHOWDOWN_LABELS[rank] }))
+    .filter(x => x.pct > 0.001) // bỏ < 0.1%
+    .sort((a, b) => b.pct - a.pct);
+  const rows = items.map(it => {
+    const pct = it.pct * 100;
+    return `<div class="esb-row">
+      <span class="esb-label">${it.label}</span>
+      <div class="esb-bar-wrap"><div class="esb-bar" style="width: ${Math.min(pct * 4, 100).toFixed(1)}%"></div></div>
+      <span class="esb-pct">${pct.toFixed(1)}%</span>
+    </div>`;
+  }).join('');
+  container.innerHTML = `
+    <div class="esb-title">Khi thắng, bạn thường có gì?</div>
+    ${rows || '<div class="esb-row"><span class="esb-label" style="color: var(--text-tertiary)">Chưa đủ dữ liệu</span></div>'}
+  `;
+  container.hidden = false;
+}
+
+// === OUTS RENDERING ===
+const OUTS_LABELS_VN = {
+  straightFlush: 'Thùng phá sảnh',
+  flush: 'Thùng',
+  straight: 'Sảnh',
+  set: 'Sám cô / Tứ quý',
+  twoPair: 'Hai đôi'
+};
+
+function renderOuts() {
+  const container = $('#outsContainer');
+  if (!STATE.outs || !STATE.outs.total) {
+    container.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">📊</div>
+        <div>Chưa có phân tích outs</div>
+        <div style="margin-top:4px; font-size: 12px;">Cần ít nhất 3 lá bài chung</div>
+      </div>`;
+    return;
+  }
+  const outs = STATE.outs;
+  const board = STATE.board.filter(c => c);
+  const cardsToCome = 5 - board.length;
+  const nextRate = Math.min(outs.total * (cardsToCome === 1 ? 2 : 2), 100);
+  const finalRate = cardsToCome === 2 ? Math.min(outs.total * 4, 100) : null;
+  const grouped = {};
+  for (const o of outs.outs) {
+    if (!grouped[o.type]) grouped[o.type] = [];
+    grouped[o.type].push(o.card);
+  }
+  const typeOrder = ['straightFlush', 'flush', 'straight', 'set', 'twoPair'];
+  const typesHtml = typeOrder.filter(t => grouped[t]).map(t => {
+    const cards = grouped[t];
+    const miniHtml = cards.slice(0, 6).map(c => {
+      const color = SUIT_COLORS[SUITS[c.suit]];
+      return `<div class="outs-mini ${color}">${RANK_DISPLAY[c.rank]}${SUIT_SYMBOLS[SUITS[c.suit]]}</div>`;
+    }).join('');
+    const more = cards.length > 6 ? `<span class="muted" style="font-size:11px; padding: 0 4px;">+${cards.length - 6}</span>` : '';
+    return `
+      <div class="outs-type-row">
+        <span class="outs-type-label">${OUTS_LABELS_VN[t]}</span>
+        <div class="outs-type-cards">${miniHtml}${more}</div>
+        <span class="outs-type-count">${cards.length}</span>
+      </div>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="outs-grid">
+      <div class="outs-stat">
+        <div class="outs-num">${outs.total}</div>
+        <div class="outs-num-label">Outs</div>
+      </div>
+      <div class="outs-rates">
+        <div class="outs-rate-row">
+          <span class="l">Hit ${cardsToCome === 2 ? 'lượt kế' : 'river'}</span>
+          <span class="v">${nextRate}%</span>
+        </div>
+        ${finalRate !== null ? `
+        <div class="outs-rate-row">
+          <span class="l">Hit tới river</span>
+          <span class="v">${finalRate}%</span>
+        </div>` : ''}
+      </div>
+      <div></div>
+    </div>
+    ${typesHtml ? `<div class="outs-types">${typesHtml}</div>` : ''}
+  `;
+}
+
+function renderBestHand() {
+  const container = $('#bestHandContainer');
+  const hero = STATE.hero.filter(c => c);
+  const board = STATE.board.filter(c => c);
+  if (hero.length < 2 || board.length < 3) {
+    container.innerHTML = `<div class="empty" style="padding: var(--s-3) 0;">Bài mạnh nhất sẽ hiện sau flop</div>`;
+    return;
+  }
+  const all = [...hero, ...board];
+  const evalResult = evaluateBest(all);
+  const name = handNameVN(evalResult);
+  const heroIds = new Set(hero.map(c => cardId(c)));
+  const cardsHtml = evalResult.best5.map(c => {
+    const color = SUIT_COLORS[SUITS[c.suit]];
+    const isHero = heroIds.has(cardId(c));
+    return `<div class="best-card ${color} ${isHero ? 'hero' : ''}">${RANK_DISPLAY[c.rank]}<br>${SUIT_SYMBOLS[SUITS[c.suit]]}</div>`;
+  }).join('');
+  container.innerHTML = `
+    <div class="best-hand">
+      <div>
+        <div class="best-hand-name">${name}</div>
+        <div class="best-hand-sub">Bài tốt nhất hiện tại</div>
+      </div>
+      <div class="best-hand-cards">${cardsHtml}</div>
+    </div>`;
+}
+
+// === POT ODDS + RECOMMENDATION ===
+function renderPot() {
+  const pot = STATE.pot;
+  const call = STATE.call;
+  const required = call / (pot + call);
+  const eq = STATE.equity ? STATE.equity.equity : 0;
+  $('#potValue').value = pot;
+  $('#callValue').value = call;
+  $('#requiredValue').textContent = (required * 100).toFixed(0) + '%';
+  const max = Math.max(eq, required, 0.05) * 1.15;
+  const eqPct = Math.max((eq / max) * 100, 2);
+  const reqPct = Math.max((required / max) * 100, 2);
+  $('#potBarEq').style.width = eqPct + '%';
+  $('#potBarEq').textContent = 'EQ ' + Math.round(eq * 100) + '%';
+  $('#potBarReq').style.width = reqPct + '%';
+  $('#potBarReq').textContent = 'REQ ' + Math.round(required * 100) + '%';
+
+  const card = $('#recCard');
+  const action = $('#recAction');
+  const reason = $('#recReason');
+  if (!STATE.equity) {
+    card.setAttribute('data-action', 'FOLD');
+    action.textContent = '—';
+    action.className = 'rec-action';
+    reason.textContent = 'Chọn bài của bạn để nhận đề xuất';
+    return;
+  }
+  let rec, reasonText;
+  // D.2: safety nudge cho bài yếu (<20% equity)
+  const weakNudge = eq < 0.20 ? ' ⚠️ Bài yếu — cân nhắc bỏ' : '';
+
+  // B.4: Position-aware recommendation
+  // Postflop: áp dụng position multiplier trên required equity
+  // Preflop: so sánh hero hand với opening range của vị trí
+  const posTag = posLabel(STATE.position);
+  const isPreflop = STATE.board.filter(c => c).length === 0;
+
+  if (isPreflop) {
+    // Preflop: so sánh với RFI range
+    const handKey = heroHandKey();
+    if (handKey) {
+      const handInRange = isHandInPreset(handKey, STATE.position);
+      if (!handInRange) {
+        rec = 'FOLD';
+        reasonText = `Bài ${handKey} ngoài opening range của ${posTag} — nên bỏ`;
+      } else if (call > 0) {
+        rec = 'CALL';
+        reasonText = `Bài ${handKey} trong range ${posTag}, đã có bet ${call} — theo`;
+      } else {
+        rec = 'RAISE';
+        reasonText = `Bài ${handKey} trong range ${posTag} — nên mở (raise)`;
+      }
+      card.setAttribute('data-action', rec);
+      action.textContent = rec === 'RAISE' ? 'TỐ' : rec === 'CALL' ? 'THEO' : 'BỎ';
+      action.className = 'rec-action ' + rec.toLowerCase();
+      reason.textContent = reasonText;
+      // Required value color (vẫn hiển thị nhưng không dùng cho rec preflop)
+      const requiredEl = $('#requiredValue');
+      requiredEl.className = 'v neutral';
+      renderEVBreakdown(eq);
+      return;
+    }
+  }
+
+  // Postflop: dùng position multiplier
+  const posMult = POS_MULT[POSITION_RANK[STATE.position]] || 1.0;
+  const effectiveReq = required * posMult;
+  if (eq > effectiveReq * 1.5 && eq > 0.5) {
+    rec = 'RAISE';
+    reasonText = `Tỉ lệ thắng ${(eq*100).toFixed(0)}% vượt xa yêu cầu ${(required*100).toFixed(0)}% (${posTag}) — hãy tố thêm`;
+  } else if (eq >= effectiveReq) {
+    rec = 'CALL';
+    reasonText = `Tỉ lệ thắng ${(eq*100).toFixed(0)}% đủ để theo ${(required*100).toFixed(0)}% yêu cầu (${posTag})${eq < 0.20 ? weakNudge : ''}`;
+  } else {
+    rec = 'FOLD';
+    reasonText = `Tỉ lệ thắng ${(eq*100).toFixed(0)}% thấp hơn yêu cầu ${(required*100).toFixed(0)}% (${posTag}) — nên bỏ bài${eq < 0.20 ? weakNudge : ''}`;
+  }
+  card.setAttribute('data-action', rec);
+  action.textContent = rec === 'RAISE' ? 'TỐ' : rec === 'CALL' ? 'THEO' : 'BỎ';
+  action.className = 'rec-action ' + rec.toLowerCase();
+  reason.textContent = reasonText;
+
+  // Required value color
+  const requiredEl = $('#requiredValue');
+  if (STATE.equity && eq >= required) requiredEl.className = 'v good';
+  else requiredEl.className = 'v bad';
+
+  // E.2: EV breakdown cho 3 actions
+  renderEVBreakdown(eq);
+}
+
+// E.2: tính và hiển thị $EV cho BỎ/THEO/TỐ
+function renderEVBreakdown(eq) {
+  // eq: number (equity ratio 0..1). Backward-compat: accept object {equity}
+  const equity = (typeof eq === 'number') ? eq : (eq && eq.equity) || 0;
+  const wrap = $('#evBreakdown');
+  if (!wrap) return;
+  if (!STATE.equity) { wrap.hidden = true; return; }
+  const pot = STATE.pot;
+  const call = STATE.call;
+  // BỎ: EV = 0
+  const evFold = 0;
+  // THEO: EV = p*(pot + call) - (1-p)*call  (giành pot+call với p, mất call với 1-p)
+  const evCall = equity * (pot + call) - (1 - equity) * call;
+  // TỐ thêm 50% pot: raise = pot * 0.5. EV_raise = p*(pot + raise) - (1-p)*raise
+  const raise = Math.max(call, pot * 0.5);
+  const evRaise = equity * (pot + raise) - (1 - equity) * raise;
+  const fmt = (v) => (v >= 0 ? '+' : '') + v.toFixed(0);
+  const setVal = (id, v) => {
+    const el = $('#' + id);
+    if (!el) return;
+    el.textContent = '$' + fmt(v);
+    el.className = 'ev-val ' + (v > 0.5 ? 'positive' : v < -0.5 ? 'negative' : '');
+  };
+  setVal('evFold', evFold);
+  setVal('evCall', evCall);
+  setVal('evRaise', evRaise);
+  wrap.hidden = false;
+}
+
+// === RANGE GRID ===
+function renderRangeGrid() {
+  const grid = $('#rangeGrid');
+  grid.innerHTML = '';
+  for (let r = 0; r < 13; r++) {
+    for (let c = 0; c < 13; c++) {
+      const key = `${r},${c}`;
+      const name = rangeHandName(r, c);
+      const nameVN = rangeHandNameVN(r, c);
+      const cell = el('button', {
+        class: 'range-cell' + (STATE.activeRange[key] ? ' on' : ''),
+        'aria-label': nameVN,
+        title: nameVN,
+        onclick: () => toggleRangeCell(key)
+      }, [name]);
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function toggleRangeCell(key) {
+  pushHistory('range');
+  STATE.activeRange[key] = !STATE.activeRange[key];
+  if (Object.values(STATE.activeRange).filter(v => v).length === 0) {
+    applyAllRange();
+    return;
+  }
+  haptic(8);
+  renderRangeGrid();
+  updateRangeChips();
+  saveState();
+  scheduleCalc();
+}
+
+function applyRangePreset(preset) {
+  pushHistory('range');
+  STATE.activeRange = applyRangeFilter(preset);
+  renderRangeGrid();
+  updateRangeChips();
+  saveState();
+  scheduleCalc();
+}
+function applyAllRange() { applyRangePreset('all'); }
+function applyTop20Range() { applyRangePreset('top20'); }
+function applyTop10Range() { applyRangePreset('top10'); }
+function applyPairsRange() { applyRangePreset('pairs'); }
+function applySuitedRange() { applyRangePreset('suited'); }
+
+// B.6: toggle grid ↔ preset view
+function setRangeView(view) {
+  STATE.rangeView = view;
+  saveState();
+  document.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  $('#rangePresetView').hidden = view !== 'preset';
+  $('#rangeGridView').hidden = view !== 'grid';
+  // Nếu đang ở preset view, sync activeRange với position hiện tại
+  if (view === 'preset') {
+    applyPositionRange();
+  }
+}
+
+// B.5: áp dụng range preset theo vị trí hiện tại
+function applyPositionRange() {
+  pushHistory('range');
+  STATE.activeRange = applyRangeFilter(STATE.position);
+  updateRangeChips();
+  saveState();
+  scheduleCalc();
+}
+
+// B.5: render các preset chips (UTG, MP, ..., BB)
+function renderRangePresetChips() {
+  const wrap = $('#rangePresetChips');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  Object.keys(RANGE_PRESETS_BY_POS).forEach(pos => {
+    const preset = RANGE_PRESETS_BY_POS[pos];
+    const btn = el('button', {
+      class: 'chip range-preset-chip' + (pos === STATE.position ? ' active' : ''),
+      'data-pos': pos,
+      onclick: () => {
+        STATE.position = pos;
+        saveState();
+        renderRangePresetChips();
+        renderPositionChips();
+        applyPositionRange();
+      }
+    }, [preset.label]);
+    wrap.appendChild(btn);
+  });
+}
+
+function updateRangeChips() {
+  const count = Object.values(STATE.activeRange).filter(v => v).length;
+  const pct = (count / 169) * 100;
+  $('#rangeCount').textContent = `${count}/169 (${pct.toFixed(0)}%)`;
+}
+
+// === INIT RENDER ===
+function render() {
+  // Hero
+  const heroRow = $('#heroRow');
+  heroRow.innerHTML = '';
+  for (let i = 0; i < 2; i++) {
+    heroRow.appendChild(renderCardSlot('hero', i, STATE.hero[i]));
+  }
+  // Board
+  const boardRow = $('#boardRow');
+  boardRow.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    boardRow.appendChild(renderCardSlot('board', i, STATE.board[i]));
+  }
+  renderExtraBoards();
+}
+
+function setNumOpps(n) {
+  if (STATE.numOpps === n) return;
+  pushHistory('numOpps');
+  STATE.numOpps = n;
+  haptic(8);
+  document.querySelectorAll('.stepper-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.n) === n);
+  });
+  saveState();
+  scheduleCalc();
+}
+
+// B.4: position setters
+function setPosition(pos) {
+  if (!POS_LABELS[pos] || STATE.position === pos) return;
+  pushHistory('position');
+  STATE.position = pos;
+  haptic(8);
+  saveState();
+  renderPositionChips();
+  renderRangePresetChips();
+  renderTableSummary();
+  // Nếu đang ở preset view → apply preset theo vị trí mới
+  if (STATE.rangeView === 'preset') {
+    applyPositionRange();
+  } else {
+    // Ở grid view: vẫn recompute rec với position mới
+    scheduleCalc();
+  }
+}
+
+function setSB(v) {
+  STATE.sb = Math.max(0, parseFloat(v) || 0);
+  const input = $('#sbValue'); if (input && input.value !== String(STATE.sb)) input.value = STATE.sb;
+  saveState();
+  renderTableSummary();
+}
+function setBB(v) {
+  STATE.bb = Math.max(0, parseFloat(v) || 0);
+  const input = $('#bbValue'); if (input && input.value !== String(STATE.bb)) input.value = STATE.bb;
+  saveState();
+  renderTableSummary();
+}
+
+function renderPositionChips() {
+  const wrap = $('#positionChips');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  Object.keys(POS_LABELS).forEach(pos => {
+    const btn = el('button', {
+      class: 'chip pos-chip' + (pos === STATE.position ? ' active' : ''),
+      'data-pos': pos,
+      onclick: () => setPosition(pos)
+    }, [pos]);
+    wrap.appendChild(btn);
+  });
+}
+
+function renderTableSummary() {
+  const el = $('#tableSummary');
+  if (el) el.textContent = `${posLabel(STATE.position)} • SB ${STATE.sb} / BB ${STATE.bb}`;
+}
+
+// Opt #3: precision toggle — 2000 trials (Thường) vs 4000 (Cao)
+function setPrecision(level) {
+  if (STATE.precision === level) return;
+  pushHistory('precision');
+  STATE.precision = level;
+  STATE.trials = level === 'cao' ? 4000 : 2000;
+  haptic(8);
+  document.querySelectorAll('[data-precision]').forEach(b => {
+    b.classList.toggle('active', b.dataset.precision === level);
+  });
+  saveState();
+  scheduleCalc();
+}
+
+function setPot(v) {
+  STATE.pot = Math.max(0, parseFloat(v) || 0);
+  saveState();
+  renderPot();
+}
+function setCall(v) {
+  STATE.call = Math.max(0, parseFloat(v) || 0);
+  saveState();
+  renderPot();
+}
+
+// === INIT ===
+function init() {
+  // B.3: restore persisted state trước khi render
+  loadState();
+  const app = $('#app');
+  app.innerHTML = `
+    <div class="topbar">
+      <div class="topbar-title"><span class="brand-mark"></span>Poker Equity</div>
+      <div class="topbar-actions">
+        <button id="btnUndo" class="topbar-action" aria-label="Hoàn tác" onclick="undo()" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>
+        </button>
+        <button id="btnRedo" class="topbar-action" aria-label="Làm lại" onclick="redo()" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 15-6.7L21 13"/></svg>
+        </button>
+        <button class="topbar-action" aria-label="Chia sẻ" onclick="shareEquity()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        </button>
+        <button class="topbar-action" aria-label="Thông tin">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="hero">
+      <h1>Tính tỉ lệ<br/><span class="thin">thắng poker</span></h1>
+      <p class="subtitle">Chọn bài của bạn và mô phỏng với hàng nghìn ván</p>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Bài của bạn</span>
+        <span class="section-hint">Chạm để chọn</span>
+      </div>
+      <div class="hero-hand" id="heroRow"></div>
+    </div>
+    <div class="onboarding-tooltip" id="onboardingTip" hidden>
+      <div class="onboarding-bubble">
+        <div class="onboarding-arrow"></div>
+        <div class="onboarding-text">Chạm vào ô bài để chọn bài của bạn</div>
+        <button class="onboarding-btn" onclick="dismissOnboarding()">Đã hiểu</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Bài chung</span>
+        <span class="section-hint">Flop → Turn → River</span>
+      </div>
+      <div class="board-row" id="boardRow"></div>
+      <div class="extra-boards" id="extraBoards" hidden>
+        <div class="extra-boards-header">
+          <span class="eb-label">Bộ board thử (tối đa 2)</span>
+          <button class="eb-add" onclick="addExtraBoard()">+ Thêm bộ</button>
+        </div>
+        <div id="extraBoardsList"></div>
+      </div>
+    </div>
+
+    <!-- B.1: Thiết lập bàn (Số đối thủ + Vị trí) — đưa lên cao -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Thiết lập bàn</span>
+        <span class="section-hint" id="tableSummary">BTN • SB 1 / BB 2</span>
+      </div>
+      <div class="glass table-setup">
+        <div class="ts-row">
+          <span class="ts-label">Số đối thủ</span>
+          <div class="stepper" id="playersSel"></div>
+        </div>
+        <div class="ts-row">
+          <span class="ts-label">Vị trí của bạn</span>
+          <div class="position-chips" id="positionChips"></div>
+        </div>
+        <div class="ts-row ts-blinds">
+          <div class="ts-blind">
+            <label>Small blind</label>
+            <input type="number" id="sbValue" value="1" min="0" step="1" oninput="setSB(this.value)" onchange="pushHistory('sb')" onkeydown="if(event.key==='Enter')this.blur()"/>
+          </div>
+          <div class="ts-blind">
+            <label>Big blind</label>
+            <input type="number" id="bbValue" value="2" min="0" step="1" oninput="setBB(this.value)" onchange="pushHistory('bb')" onkeydown="if(event.key==='Enter')this.blur()"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Tỉ lệ thắng</span>
+        <div class="range-quick" style="margin: 0;">
+          <button class="chip active" data-precision="thuong" onclick="setPrecision('thuong')">Thường</button>
+          <button class="chip" data-precision="cao" onclick="setPrecision('cao')">Cao</button>
+        </div>
+      </div>
+      <div class="equity-hero" id="equityHero" data-sentiment="neutral">
+        <div class="equity-row">
+          <div class="equity-donut">
+            <svg viewBox="0 0 140 140">
+              <defs>
+                <linearGradient id="equityGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#0a84ff"/>
+                  <stop offset="50%" stop-color="#5e5ce6"/>
+                  <stop offset="100%" stop-color="#bf5af2"/>
+                </linearGradient>
+              </defs>
+              <circle class="equity-donut-track" cx="70" cy="70" r="60"/>
+              <circle class="equity-donut-fill" id="equityFill" cx="70" cy="70" r="60"
+                stroke-dasharray="377" stroke-dashoffset="377"/>
+            </svg>
+            <div class="equity-donut-center">
+              <div class="equity-pct" id="equityNumber">—</div>
+              <div class="equity-pct-label">Equity</div>
+            </div>
+          </div>
+          <div class="equity-vs">
+            <div class="equity-vs-label" id="equityVsLabel">Tỉ lệ thắng</div>
+            <div class="equity-vs-value" id="equityVsValue">—</div>
+            <div class="equity-vs-sub" id="equityVsSub">Chọn bài để bắt đầu</div>
+          </div>
+        </div>
+        <div class="equity-pills">
+          <div class="equity-pill win"><span class="dot"></span><span class="v" id="eqWin">—</span><span class="l">Thắng</span></div>
+          <div class="equity-pill tie"><span class="dot"></span><span class="v" id="eqTie">—</span><span class="l">Hòa</span></div>
+          <div class="equity-pill lose"><span class="dot"></span><span class="v" id="eqLose">—</span><span class="l">Thua</span></div>
+        </div>
+        <div class="equity-street-chart" id="equityStreetChart" hidden></div>
+        <div class="equity-showdown-breakdown" id="equityShowdownBreakdown" hidden></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Phân tích chi tiết</span>
+        <span class="section-hint">Outs + bài tốt nhất</span>
+      </div>
+      <div class="glass analysis-card">
+        <div id="outsContainer"></div>
+        <div id="bestHandContainer"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Đề xuất</span>
+      </div>
+      <div class="rec-card" id="recCard" data-action="FOLD">
+        <div class="rec-label">Hành động tối ưu</div>
+        <div class="rec-action" id="recAction">—</div>
+        <div class="rec-reason" id="recReason">Chọn bài của bạn để nhận đề xuất</div>
+        <div class="ev-breakdown" id="evBreakdown" hidden>
+          <div class="ev-row"><span class="ev-label">$EV BỎ</span><span class="ev-val" id="evFold">$0</span></div>
+          <div class="ev-row"><span class="ev-label">$EV THEO</span><span class="ev-val" id="evCall">$0</span></div>
+          <div class="ev-row"><span class="ev-label">$EV TỐ +50%</span><span class="ev-val" id="evRaise">$0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Khoảng bài đối thủ</span>
+        <span class="section-hint" id="rangeCount">169/169</span>
+      </div>
+      <div class="glass range-card">
+        <div class="range-view-toggle">
+          <button class="chip active" data-view="preset" onclick="setRangeView('preset')">Theo vị trí</button>
+          <button class="chip" data-view="grid" onclick="setRangeView('grid')">Lưới 13×13</button>
+        </div>
+        <div class="range-preset-view" id="rangePresetView">
+          <div class="range-preset-chips" id="rangePresetChips"></div>
+        </div>
+        <div class="range-grid-view" id="rangeGridView" hidden>
+          <div class="range-quick">
+            <button class="chip" data-preset="all" onclick="applyAllRange()">Tất cả</button>
+            <button class="chip" data-preset="top20" onclick="applyTop20Range()">Top 20%</button>
+            <button class="chip" data-preset="top10" onclick="applyTop10Range()">Top 10%</button>
+            <button class="chip" data-preset="pairs" onclick="applyPairsRange()">Đôi</button>
+            <button class="chip" data-preset="suited" onclick="applySuitedRange()">Đồng chất</button>
+          </div>
+          <div class="range-grid" id="rangeGrid"></div>
+          <div class="range-legend">
+            <span><b>AA</b> = Đôi Át</span>
+            <span><b>AKs</b> = Át K đồng chất</span>
+            <span><b>AKo</b> = Át K khác chất</span>
+            <span class="range-legend-hint">Rê chuột vào ô để xem tên đầy đủ</span>
+          </div>
+        </div>
+        <div class="range-explainer">
+          <strong>Khoảng bài đối thủ</strong> = những bài mà đối thủ có thể có. Tap ô để bật/tắt (màu cyan = đang bật).
+          EQ được tính dựa trên khoảng này khi đã có bài chung.
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Tỉ lệ pot</span>
+        <span class="section-hint">Pot odds <button class="glossary-btn" data-term="pot" aria-label="Giải thích">?</button></span>
+      </div>
+      <div class="glass pot-card">
+        <div class="pot-inputs">
+          <div class="pot-input">
+            <label>Pot hiện tại</label>
+            <input type="number" id="potValue" value="100" inputmode="decimal" oninput="setPot(this.value)" onchange="pushHistory('pot')" onkeydown="if(event.key==='Enter')this.blur()"/>
+          </div>
+          <div class="pot-input">
+            <label>Số tiền cược (call)</label>
+            <input type="number" id="callValue" value="25" inputmode="decimal" oninput="setCall(this.value)" onchange="pushHistory('call')" onkeydown="if(event.key==='Enter')this.blur()"/>
+          </div>
+        </div>
+        <div class="pot-result">
+          <span class="l">Cần thắng tối thiểu (REQ)</span>
+          <span class="v" id="requiredValue">20%</span>
+        </div>
+        <div class="pot-bar-track">
+          <div class="pot-bar-eq" id="potBarEq" style="width:50%">EQ 0%</div>
+          <div class="pot-bar-req" id="potBarReq" style="width:20%">REQ 0%</div>
+        </div>
+        <div class="pot-legend">
+          <span><b>EQ</b> = tỉ lệ thắng của bạn</span>
+          <span><b>REQ</b> = tối thiểu cần để hòa vốn <button class="glossary-btn" data-term="req" aria-label="REQ là gì">?</button></span>
+          <span class="muted">EQ &gt; REQ → có lời; EQ &lt; REQ → lỗ</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sheet-overlay" id="sheetOverlay" onclick="if(event.target===this)closePicker()">
+      <div class="sheet" id="sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <span class="sheet-title">Chọn số</span>
+          <button class="sheet-close" onclick="closePicker()" aria-label="Đóng">×</button>
+        </div>
+        <div class="picker-step" id="pickerRanks"></div>
+        <div class="picker-content">
+          <div class="picker-suits" id="pickerSuits"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Build player stepper
+  const sel = $('#playersSel');
+  for (let n = 1; n <= 9; n++) {
+    const b = el('button', {
+      class: 'stepper-btn' + (n === STATE.numOpps ? ' active' : ''),
+      'data-n': n,
+      onclick: () => setNumOpps(n)
+    }, [String(n)]);
+    sel.appendChild(b);
+  }
+
+  // Init range: nếu chưa có activeRange từ localStorage thì dùng ALL
+  // L-6 fix: applyAllRange already schedules a calc; calling runEquity() here would
+  // do the same work twice. Let the scheduled one handle it (220ms debounce).
+  if (!STATE.activeRange || Object.keys(STATE.activeRange).length === 0) {
+    applyAllRange();
+  } else {
+    renderRangeGrid();
+    updateRangeChips();
+    scheduleCalc();
+  }
+
+  // Sync UI controls với STATE đã load
+  const potInput = $('#potValue');
+  const callInput = $('#callValue');
+  if (potInput) potInput.value = STATE.pot;
+  if (callInput) callInput.value = STATE.call;
+  document.querySelectorAll('.stepper-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.n) === STATE.numOpps);
+  });
+  document.querySelectorAll('[data-precision]').forEach(b => {
+    b.classList.toggle('active', b.dataset.precision === STATE.precision);
+  });
+
+  // B.4: sync position + SB/BB UI
+  renderPositionChips();
+  renderRangePresetChips();
+  const sbInput = $('#sbValue'); if (sbInput) sbInput.value = STATE.sb;
+  const bbInput = $('#bbValue'); if (bbInput) bbInput.value = STATE.bb;
+  renderTableSummary();
+
+  // B.6: restore range view
+  setRangeView(STATE.rangeView);
+
+  // B.2: glossary tooltips
+  initGlossary();
+
+  render();
+
+  // First-time onboarding tooltip (B.2): hiện nếu user chưa dismiss
+  try {
+    if (!localStorage.getItem('poker:onboarded')) {
+      $('#onboardingTip').hidden = false;
+    }
+  } catch (e) {}
+}
+
+function dismissOnboarding() {
+  const tip = $('#onboardingTip');
+  if (tip) tip.hidden = true;
+  try { localStorage.setItem('poker:onboarded', '1'); } catch (e) {}
+}
+
+// B.2: Glossary tooltips - inline popover khi tap "?"
+const GLOSSARY = {
+  pot: {
+    title: 'Pot Odds',
+    body: 'Pot odds = tỉ lệ giữa pot và call. Công thức: <b>REQ = call / (pot + call)</b> — tỉ lệ thắng tối thiểu cần có để hòa vốn khi call. Nếu EQ của bạn &gt; REQ → call có lời.'
+  },
+  eq: {
+    title: 'EQ = Equity',
+    body: 'Tỉ lệ thắng ước tính của bạn (%). Tính bằng Monte Carlo: thử hàng nghìn ván ngẫu nhiên và đếm % hero thắng/hòa/thua.'
+  },
+  req: {
+    title: 'REQ = Required Equity',
+    body: 'Tỉ lệ thắng tối thiểu cần để <b>hòa vốn</b> khi call. Công thức: <b>REQ = call ÷ (pot + call)</b>. Ví dụ: pot=100, call=25 → REQ = 25/125 = 20%.'
+  }
+};
+function initGlossary() {
+  document.querySelectorAll('.glossary-btn').forEach(btn => {
+    if (btn.dataset.bound === '1') return;
+    btn.dataset.bound = '1';
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const term = btn.dataset.term;
+      const data = GLOSSARY[term];
+      if (!data) return;
+      showGlossary(btn, data);
+    });
+  });
+  document.addEventListener('click', closeGlossary);
+}
+function showGlossary(anchor, data) {
+  closeGlossary();
+  const pop = el('div', { class: 'glossary-pop' });
+  pop.innerHTML = `<div class="glossary-title">${data.title}</div><div class="glossary-body">${data.body}</div><button class="glossary-close" aria-label="Đóng">×</button>`;
+  document.body.appendChild(pop);
+  // Position relative to anchor
+  const r = anchor.getBoundingClientRect();
+  pop.style.left = Math.max(8, Math.min(window.innerWidth - 320, r.left - 100)) + 'px';
+  pop.style.top = (r.bottom + 8) + 'px';
+  setTimeout(() => pop.classList.add('show'), 10);
+}
+function closeGlossary() {
+  document.querySelectorAll('.glossary-pop').forEach(p => p.remove());
+}
+
+// === UNDO/REDO (B.5) ===
+const HISTORY_KEY = 'poker:history';
+const HISTORY_MAX = 10;
+let historyStack = []; // { snapshot, type }
+let redoStack = [];
+
+function snapshotState() {
+  return {
+    hero: STATE.hero.map(c => c ? { ...c } : null),
+    board: STATE.board.map(c => c ? { ...c } : null),
+    extraBoards: STATE.extraBoards.map(b => b.map(c => c ? { ...c } : null)),
+    numOpps: STATE.numOpps,
+    activeRange: { ...STATE.activeRange },
+    pot: STATE.pot,
+    call: STATE.call,
+    precision: STATE.precision
+  };
+}
+function pushHistory(type) {
+  const snap = snapshotState();
+  const last = historyStack[historyStack.length - 1];
+  if (last && JSON.stringify(last.snapshot) === JSON.stringify(snap)) return; // no-op
+  historyStack.push({ snapshot: snap, type });
+  if (historyStack.length > HISTORY_MAX) historyStack.shift();
+  redoStack = []; // clear redo on new action
+  updateHistoryButtons();
+}
+function applySnapshot(snap) {
+  STATE.hero = snap.hero.map(c => c ? { ...c } : null);
+  STATE.board = snap.board.map(c => c ? { ...c } : null);
+  STATE.extraBoards = snap.extraBoards.map(b => b.map(c => c ? { ...c } : null));
+  STATE.numOpps = snap.numOpps;
+  STATE.activeRange = { ...snap.activeRange };
+  STATE.pot = snap.pot;
+  STATE.call = snap.call;
+  STATE.precision = snap.precision;
+  STATE.trials = snap.precision === 'cao' ? 4000 : 2000;
+  // Sync UI
+  const potInput = $('#potValue'); if (potInput) potInput.value = STATE.pot;
+  const callInput = $('#callValue'); if (callInput) callInput.value = STATE.call;
+  document.querySelectorAll('.stepper-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.n) === STATE.numOpps);
+  });
+  document.querySelectorAll('[data-precision]').forEach(b => {
+    b.classList.toggle('active', b.dataset.precision === STATE.precision);
+  });
+  saveState();
+  render();
+  scheduleCalc();
+}
+function undo() {
+  if (historyStack.length === 0) return;
+  const cur = snapshotState();
+  const item = historyStack.pop();
+  redoStack.push({ snapshot: cur, type: item.type });
+  applySnapshot(item.snapshot);
+  updateHistoryButtons();
+  haptic(8);
+}
+function redo() {
+  if (redoStack.length === 0) return;
+  const cur = snapshotState();
+  const item = redoStack.pop();
+  historyStack.push({ snapshot: cur, type: item.type });
+  applySnapshot(item.snapshot);
+  updateHistoryButtons();
+  haptic(8);
+}
+function updateHistoryButtons() {
+  const u = $('#btnUndo'), r = $('#btnRedo');
+  if (u) u.disabled = historyStack.length === 0;
+  if (r) r.disabled = redoStack.length === 0;
+}
+// Snapshot user commits: tap card, change range, change pot/call on blur, change numOpps, change precision
+// Các setter hiện tại: gọi pushHistory() ở đầu, saveState() ở cuối.
+// Tránh push mỗi oninput pot/call (gõ 1 ký tự = 1 history), nên push trên blur/change.
+
+
+function shareEquity() {
+  const hero = STATE.hero.filter(c => c);
+  if (hero.length < 2) {
+    showToast('Chọn bài trước khi chia sẻ');
+    return;
+  }
+  const board = STATE.board.filter(c => c);
+  const eq = STATE.equity;
+  const lines = [];
+  lines.push('🃏 Poker Equity');
+  lines.push(`Bài tôi: ${hero.map(c => `${RANK_DISPLAY[c.rank]}${SUIT_SYMBOLS[SUITS[c.suit]]}`).join(' ')}`);
+  if (board.length) lines.push(`Bài chung: ${board.map(c => `${RANK_DISPLAY[c.rank]}${SUIT_SYMBOLS[SUITS[c.suit]]}`).join(' ')}`);
+  if (STATE.extraBoards.some(b => b.some(c => c))) {
+    const extras = STATE.extraBoards.filter(b => b.some(c => c));
+    extras.forEach((b, i) => {
+      const cards = b.filter(c => c).map(c => `${RANK_DISPLAY[c.rank]}${SUIT_SYMBOLS[SUITS[c.suit]]}`).join(' ');
+      lines.push(`Bộ thử ${i+1}: ${cards}`);
+    });
+  }
+  if (eq) {
+    lines.push(`Đối thủ: ${STATE.numOpps}`);
+    lines.push(`Equity: ${(eq.equity * 100).toFixed(1)}%  (Thắng ${(eq.win*100).toFixed(0)}% / Hòa ${(eq.tie*100).toFixed(0)}% / Thua ${(eq.lose*100).toFixed(0)}%)`);
+    if (STATE.pot || STATE.call) {
+      const req = STATE.call / (STATE.pot + STATE.call);
+      lines.push(`Pot: ${STATE.pot}  Call: ${STATE.call}  Cần: ${(req * 100).toFixed(0)}%`);
+    }
+    const action = $('#recAction')?.textContent;
+    if (action && action !== '—') lines.push(`Đề xuất: ${action}`);
+  }
+  const text = lines.join('\n');
+  // Try Clipboard API; fallback to execCommand
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => showToast('Đã copy vào clipboard')).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+  haptic(15);
+}
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); showToast('Đã copy'); } catch (e) { showToast(text); }
+  document.body.removeChild(ta);
+}
+function showToast(msg) {
+  let t = $('#toast');
+  if (!t) {
+    t = el('div', { id: 'toast', class: 'toast' });
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+</body>
+</html>
