@@ -1555,20 +1555,6 @@ input {
   background: var(--bg-glass);
   border-radius: var(--r-sm);
 }
-.rm-call-grid {
-  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
-  margin-bottom: 12px;
-}
-.rm-call-stat {
-  text-align: center;
-  padding: 10px 6px;
-  background: var(--bg-glass);
-  border-radius: var(--r-sm);
-}
-.rm-call-val { font-size: 18px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
-.rm-call-val.rm-good { color: var(--success); }
-.rm-call-val.rm-bad { color: var(--danger); }
-.rm-call-lbl { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
 .rm-verdict-good {
   text-align: center;
   padding: 10px;
@@ -4117,21 +4103,22 @@ function showRiverAnalysisModal() {
   const beatTop = [...beatMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
   const tieTop = [...tieMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
 
-  // 4. Call analysis
+  // 4. Verdict (chỉ gợi ý TỐ/THEO/BỎ, không hiện số tiền hay %)
   const equity = total > 0 ? (winN + tieN / 2) / total : 0;
-  const pot = STATE.pot || 0;
-  const call = STATE.call || 0;
-  const totalPot = pot + call;
-  const required = totalPot > 0 ? call / totalPot : 0;
-  const evCall = equity * totalPot - (1 - equity) * call;
-  const profitable = call > 0 ? equity > required : (equity > 0.5);
-  const winPct = (equity * 100).toFixed(0);
-  const reqPct = call > 0 ? (required * 100).toFixed(0) : '—';
-  const evStr = (evCall >= 0 ? '+' : '') + '$' + evCall.toFixed(2);
-  const verdictClass = profitable ? 'rm-verdict-good' : 'rm-verdict-bad';
-  const verdictText = call > 0
-    ? (profitable ? '✅ Có thể theo' : '❌ Nên bỏ bài')
-    : (equity >= 0.5 ? '✅ Bài mạnh' : '⚠️ Bài yếu — cẩn thận');
+  let verdictIcon, verdictText, verdictClass;
+  if (equity >= 0.6) {
+    verdictIcon = '🚀';
+    verdictText = 'Nên TỐ thêm';
+    verdictClass = 'rm-verdict-good';
+  } else if (equity >= 0.4) {
+    verdictIcon = '✅';
+    verdictText = 'Nên theo (call)';
+    verdictClass = 'rm-verdict-good';
+  } else {
+    verdictIcon = '❌';
+    verdictText = 'Nên bỏ bài (fold)';
+    verdictClass = 'rm-verdict-bad';
+  }
 
   const beatHtml = beatTop.length > 0
     ? beatTop.map(([n, c]) => `<div class="rm-row"><span class="rm-hand">${n}</span><span class="rm-combo">${c} combo</span></div>`).join('')
@@ -4139,8 +4126,6 @@ function showRiverAnalysisModal() {
   const tieHtml = tieTop.length > 0
     ? tieTop.map(([n, c]) => `<div class="rm-row"><span class="rm-hand">${n}</span><span class="rm-combo">${c} combo</span></div>`).join('')
     : '';
-
-  const callLabel = call > 0 ? `Nếu bạn CALL $${call}` : 'Nếu bạn CHECK';
 
   // 5. Render modal
   const modal = el('div', { class: 'river-modal-backdrop' });
@@ -4165,23 +4150,8 @@ function showRiverAnalysisModal() {
           <div class="rm-label">Bạn có thể HÒA</div>
           <div class="rm-list">${tieHtml}</div>
         </div>` : ''}
-        <div class="rm-section rm-call">
-          <div class="rm-label">${callLabel}</div>
-          <div class="rm-call-grid">
-            <div class="rm-call-stat">
-              <div class="rm-call-val">${winPct}%</div>
-              <div class="rm-call-lbl">Tỉ lệ thắng</div>
-            </div>
-            <div class="rm-call-stat">
-              <div class="rm-call-val">${reqPct}${reqPct !== '—' ? '%' : ''}</div>
-              <div class="rm-call-lbl">Cần hòa vốn</div>
-            </div>
-            <div class="rm-call-stat">
-              <div class="rm-call-val ${profitable ? 'rm-good' : 'rm-bad'}">${call > 0 ? evStr : '—'}</div>
-              <div class="rm-call-lbl">${call > 0 ? (profitable ? 'Lời nếu theo' : 'Lỗ nếu theo') : 'Check free'}</div>
-            </div>
-          </div>
-          <div class="${verdictClass}">${verdictText}</div>
+        <div class="rm-section">
+          <div class="${verdictClass}">${verdictIcon} ${verdictText}</div>
         </div>
       </div>
       <div class="river-modal-actions">
