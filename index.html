@@ -209,6 +209,21 @@ input {
 }
 .topbar-action:active { transform: scale(0.92); background: var(--bg-input); }
 .topbar-action:disabled { opacity: 0.35; pointer-events: none; }
+.topbar-action.new-hand-btn { position: relative; }
+.topbar-action.new-hand-btn[data-armed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.new-hand-badge {
+  position: absolute;
+  top: 4px; right: 4px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: pending-pulse 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
 
 /* === HERO HEADER === */
 .hero {
@@ -648,6 +663,30 @@ input {
   font-size: 11px !important;
   padding: 5px 8px !important;
   min-width: 44px;
+  position: relative;
+}
+.pos-chip.pending {
+  border: 1.5px dashed var(--accent);
+  animation: pending-pulse 1.6s ease-in-out infinite;
+}
+.pos-chip.pending::after {
+  content: 'Đợi';
+  position: absolute;
+  top: -7px; right: -6px;
+  background: var(--accent);
+  color: var(--bg-base);
+  font-size: 8px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: var(--r-full);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  pointer-events: none;
+}
+@keyframes pending-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 240, 255, 0.55); }
+  50%      { box-shadow: 0 0 0 6px rgba(0, 240, 255, 0); }
 }
 .ts-blinds {
   display: grid;
@@ -2210,7 +2249,8 @@ const STATE = {
   position: 'BTN',  // B.4: vị trí bàn
   sb: 1,            // small blind amount
   bb: 2,            // big blind amount
-  rangeView: 'preset'  // B.6: 'preset' | 'grid' — view cho range section
+  rangeView: 'preset',  // B.6: 'preset' | 'grid' — view cho range section
+  pendingPosition: null  // Ván mới: vị trí đang chờ apply (chưa commit)
 };
 
 const STATE_KEY = 'poker:state:v1';
@@ -2351,6 +2391,7 @@ function addExtraBoard() {
   renderExtraBoards();
   saveState();
   scheduleCalc();
+  updateNewHandButton();
 }
 function removeExtraBoard(boardIndex) {
   pushHistory('extraBoard-remove');
@@ -2358,6 +2399,7 @@ function removeExtraBoard(boardIndex) {
   renderExtraBoards();
   saveState();
   scheduleCalc();
+  updateNewHandButton();
 }
 function renderExtraBoards() {
   const wrap = $('#extraBoardsList');
@@ -3056,6 +3098,7 @@ function render() {
     boardRow.appendChild(renderCardSlot('board', i, STATE.board[i]));
   }
   renderExtraBoards();
+  updateNewHandButton();
 }
 
 function setNumOpps(n) {
@@ -3070,23 +3113,78 @@ function setNumOpps(n) {
   scheduleCalc();
 }
 
-// B.4: position setters
+// B.4 + Ván mới: position setters — staged, không apply ngay
 function setPosition(pos) {
-  if (!POS_LABELS[pos] || STATE.position === pos) return;
-  pushHistory('position');
-  STATE.position = pos;
+  if (!POS_LABELS[pos]) return;
+  // Tap lại vị trí hiện tại → bỏ pending (nếu có)
+  if (STATE.position === pos) {
+    if (STATE.pendingPosition) {
+      STATE.pendingPosition = null;
+      renderPositionChips();
+      updateNewHandButton();
+    }
+    return;
+  }
+  // Chỉ ghi nhận pendingPosition, KHÔNG apply range/rec ngay
+  STATE.pendingPosition = pos;
   haptic(8);
+  renderPositionChips();
+  updateNewHandButton();
+}
+
+// Ván mới: apply pendingPosition → STATE.position chính thức
+function applyPendingPosition() {
+  if (!STATE.pendingPosition) return;
+  pushHistory('position');
+  STATE.position = STATE.pendingPosition;
+  STATE.pendingPosition = null;
+  haptic(15);
   saveState();
   renderPositionChips();
   renderRangePresetChips();
   renderTableSummary();
-  // Nếu đang ở preset view → apply preset theo vị trí mới
   if (STATE.rangeView === 'preset') {
     applyPositionRange();
   } else {
-    // Ở grid view: vẫn recompute rec với position mới
     scheduleCalc();
   }
+  updateNewHandButton();
+}
+
+// Ván mới: clear board + apply pending position (nếu có) + reset mọi thứ
+function startNewHand() {
+  if (STATE.pendingPosition) applyPendingPosition();
+  pushHistory('newHand');
+  STATE.board = [null, null, null, null, null];
+  STATE.extraBoards = [];
+  haptic(15);
+  saveState();
+  render();
+  renderExtraBoards();
+  scheduleCalc();
+  updateNewHandButton();
+  showToast('Ván mới — chọn bài chung');
+}
+
+// Bỏ pending position
+function cancelPendingPosition() {
+  if (!STATE.pendingPosition) return;
+  STATE.pendingPosition = null;
+  haptic(5);
+  renderPositionChips();
+  updateNewHandButton();
+}
+
+// Toggle badge trên nút "Ván mới"
+function updateNewHandButton() {
+  const btn = $('#btnNewHand');
+  const badge = $('#newHandBadge');
+  if (!btn || !badge) return;
+  const hasCards = STATE.board.some(c => c) || STATE.extraBoards.some(b => b && b.some(c => c));
+  const hasPending = !!STATE.pendingPosition;
+  badge.hidden = !(hasPending || hasCards);
+  btn.dataset.armed = hasPending ? 'true' : 'false';
+  btn.title = hasPending ? `Áp dụng ${STATE.pendingPosition} — bắt đầu ván mới` : 'Bắt đầu ván mới';
 }
 
 function setSB(v) {
@@ -3107,8 +3205,11 @@ function renderPositionChips() {
   if (!wrap) return;
   wrap.innerHTML = '';
   Object.keys(POS_LABELS).forEach(pos => {
+    const cls = 'chip pos-chip'
+      + (pos === STATE.position ? ' active' : '')
+      + (pos === STATE.pendingPosition && pos !== STATE.position ? ' pending' : '');
     const btn = el('button', {
-      class: 'chip pos-chip' + (pos === STATE.position ? ' active' : ''),
+      class: cls,
       'data-pos': pos,
       onclick: () => setPosition(pos)
     }, [pos]);
@@ -3160,6 +3261,10 @@ function init() {
         </button>
         <button id="btnRedo" class="topbar-action" aria-label="Làm lại" onclick="redo()" disabled>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 15-6.7L21 13"/></svg>
+        </button>
+        <button id="btnNewHand" class="topbar-action new-hand-btn" aria-label="Ván mới" onclick="startNewHand()" title="Bắt đầu ván mới">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.5 0 4.7 1 6.4 2.6L21 8"/><path d="M21 3v5h-5"/></svg>
+          <span class="new-hand-badge" id="newHandBadge" hidden></span>
         </button>
         <button class="topbar-action" aria-label="Chia sẻ" onclick="shareEquity()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
@@ -3510,7 +3615,8 @@ function snapshotState() {
     activeRange: { ...STATE.activeRange },
     pot: STATE.pot,
     call: STATE.call,
-    precision: STATE.precision
+    precision: STATE.precision,
+    pendingPosition: STATE.pendingPosition
   };
 }
 function pushHistory(type) {
@@ -3532,6 +3638,7 @@ function applySnapshot(snap) {
   STATE.call = snap.call;
   STATE.precision = snap.precision;
   STATE.trials = snap.precision === 'cao' ? 4000 : 2000;
+  STATE.pendingPosition = snap.pendingPosition || null;
   // Sync UI
   const potInput = $('#potValue'); if (potInput) potInput.value = STATE.pot;
   const callInput = $('#callValue'); if (callInput) callInput.value = STATE.call;
@@ -3543,6 +3650,8 @@ function applySnapshot(snap) {
   });
   saveState();
   render();
+  renderPositionChips();
+  updateNewHandButton();
   scheduleCalc();
 }
 function undo() {
