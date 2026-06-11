@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0118">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Poker Equity — Máy Tính Texas Hold'em</title>
+<title>CaisDeosMasPoker — Máy Tính Texas Hold'em</title>
 <style>
 /* === DESIGN TOKENS — Apple/Samsung 2026 === */
 :root {
@@ -517,6 +517,20 @@ input {
 .ev-val { color: var(--text-primary); font-weight: 600; }
 .ev-val.positive { color: var(--success); }
 .ev-val.negative { color: var(--danger); }
+.ev-header {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+  margin-bottom: 4px;
+}
+.ev-sub {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 400;
+  margin-left: 2px;
+}
 
 /* === MULTI-BOARD (A.4) === */
 .extra-boards {
@@ -2920,7 +2934,7 @@ function renderEVBreakdown(eq) {
   const setVal = (id, v) => {
     const el = $('#' + id);
     if (!el) return;
-    el.textContent = '$' + fmt(v);
+    el.textContent = fmt(v);
     el.className = 'ev-val ' + (v > 0.5 ? 'positive' : v < -0.5 ? 'negative' : '');
   };
   setVal('evFold', evFold);
@@ -3139,7 +3153,7 @@ function init() {
   const app = $('#app');
   app.innerHTML = `
     <div class="topbar">
-      <div class="topbar-title"><span class="brand-mark"></span>Poker Equity</div>
+      <div class="topbar-title"><span class="brand-mark"></span>CaisDeosMasPoker</div>
       <div class="topbar-actions">
         <button id="btnUndo" class="topbar-action" aria-label="Hoàn tác" onclick="undo()" disabled>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>
@@ -3283,9 +3297,10 @@ function init() {
         <div class="rec-action" id="recAction">—</div>
         <div class="rec-reason" id="recReason">Chọn bài của bạn để nhận đề xuất</div>
         <div class="ev-breakdown" id="evBreakdown" hidden>
-          <div class="ev-row"><span class="ev-label">$EV BỎ</span><span class="ev-val" id="evFold">$0</span></div>
-          <div class="ev-row"><span class="ev-label">$EV THEO</span><span class="ev-val" id="evCall">$0</span></div>
-          <div class="ev-row"><span class="ev-label">$EV TỐ +50%</span><span class="ev-val" id="evRaise">$0</span></div>
+          <div class="ev-header">Giá trị kỳ vọng (EV)</div>
+          <div class="ev-row"><span class="ev-label">Bỏ</span><span class="ev-val" id="evFold">+0</span></div>
+          <div class="ev-row"><span class="ev-label">Theo</span><span class="ev-val" id="evCall">+0</span></div>
+          <div class="ev-row"><span class="ev-label">Tố <span class="ev-sub">(+50% pot)</span></span><span class="ev-val" id="evRaise">+0</span></div>
         </div>
       </div>
     </div>
@@ -3567,7 +3582,7 @@ function shareEquity() {
   const board = STATE.board.filter(c => c);
   const eq = STATE.equity;
   const lines = [];
-  lines.push('🃏 Poker Equity');
+  lines.push('🃏 CaisDeosMasPoker');
   lines.push(`Bài tôi: ${hero.map(c => `${RANK_DISPLAY[c.rank]}${SUIT_SYMBOLS[SUITS[c.suit]]}`).join(' ')}`);
   if (board.length) lines.push(`Bài chung: ${board.map(c => `${RANK_DISPLAY[c.rank]}${SUIT_SYMBOLS[SUITS[c.suit]]}`).join(' ')}`);
   if (STATE.extraBoards.some(b => b.some(c => c))) {
