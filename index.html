@@ -1883,11 +1883,10 @@ function evaluateBest(cards) {
     return best;
   }
   if (cards.length === 7) {
-    // C(7,5) = 21 combinations
+    // C(7,5) = 21 combinations — quét đủ cả 21 (bug fix: trước chỉ quét 6, bỏ sót best hand)
     let best = null;
-    for (let i = 0; i < 3; i++) {
-      for (let j = i + 1; j < 4; j++) {
-        // Combo 5 cards = 7 minus 2 cards at positions i, j
+    for (let i = 0; i < 7; i++) {
+      for (let j = i + 1; j < 7; j++) {
         const combo = [];
         for (let k = 0; k < 7; k++) {
           if (k !== i && k !== j) combo.push(cards[k]);
